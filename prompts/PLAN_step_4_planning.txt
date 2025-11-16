@@ -1,0 +1,151 @@
+===== PLAN_step_4_planning.txt =====
+
+[ROLE]
+You are a **senior system/solution architect + tech lead**.
+Your output is structured planning content for sections 7-9 of `docs/PLAN.md`.
+
+[CONTEXT]
+Reference the same global context from PLAN_step_1_overview.txt.
+This step focuses on timeline, risks, and acceptance criteria.
+
+[TASKS FOR THIS STEP]
+
+Generate sections 7-9 of `docs/PLAN.md`:
+
+**7) 6-Week Milestone Plan (MVP)**
+   - For each week (W1–W6):
+     - Objectives (architectural + product)
+     - Concrete deliverables (code-level features, endpoints, screens)
+     - A "demo slice" that can be shown to a stakeholder at the end of the week
+   - Mark features as:
+     - MUST (출시 필수)
+     - SHOULD (가능하면 포함)
+     - NICE (시간 남으면)
+   - Ensure each milestone unblocks the next logically (dependencies clear)
+
+**8) Risks & Mitigations**
+   - At least 10 explicit risks:
+     - e.g., over-complicated UI for 70+, RLS misconfig, LLM cost spike, Redis outage, overscoped community, etc.
+   - For each:
+     - Likelihood (Low/Med/High)
+     - Impact (Low/Med/High)
+     - Detection (how to notice early)
+     - Mitigation/contingency plan
+
+**9) Acceptance Criteria for MVP**
+   - Describe what must be true to consider MVP "feature-complete":
+     - End-to-end flows that must work reliably
+     - a11y checks that must pass
+     - Latency & stability targets at a conceptual level
+     - Minimal analytics/metrics available
+   - This section should later drive TEST_step design
+
+[OUTPUT FORMAT]
+
+Generate markdown with headings:
+
+# 7. 6-Week Milestone Plan (MVP)
+## Week 1: Foundation & Infrastructure
+### Objectives
+### Deliverables
+### Demo Slice
+### Priority Marking
+## Week 2: Core Features - Daily Card & Auth
+### Objectives
+### Deliverables
+### Demo Slice
+### Priority Marking
+## Week 3: Insight Hub & Voice Intents
+### Objectives
+### Deliverables
+### Demo Slice
+### Priority Marking
+## Week 4: Scam Check & Tool Tracks
+### Objectives
+### Deliverables
+### Demo Slice
+### Priority Marking
+## Week 5: Community & Family Features
+### Objectives
+### Deliverables
+### Demo Slice
+### Priority Marking
+## Week 6: Polish, Testing & Launch Prep
+### Objectives
+### Deliverables
+### Demo Slice
+### Priority Marking
+
+# 8. Risks & Mitigations
+## Risk 1: Over-complicated UI for 70+
+### Likelihood
+### Impact
+### Detection
+### Mitigation
+## Risk 2: RLS Misconfiguration
+### Likelihood
+### Impact
+### Detection
+### Mitigation
+## Risk 3: LLM Cost Spike
+### Likelihood
+### Impact
+### Detection
+### Mitigation
+## Risk 4: Redis Outage
+### Likelihood
+### Impact
+### Detection
+### Mitigation
+## Risk 5: Overscoped Community Features
+### Likelihood
+### Impact
+### Detection
+### Mitigation
+## Risk 6: TTS/Voice Recognition Quality
+### Likelihood
+### Impact
+### Detection
+### Mitigation
+## Risk 7: Family Dashboard Complexity
+### Likelihood
+### Impact
+### Detection
+### Mitigation
+## Risk 8: Data Migration Issues
+### Likelihood
+### Impact
+### Detection
+### Mitigation
+## Risk 9: Third-Party API Dependencies
+### Likelihood
+### Impact
+### Detection
+### Mitigation
+## Risk 10: Accessibility Compliance
+### Likelihood
+### Impact
+### Detection
+### Mitigation
+
+# 9. Acceptance Criteria for MVP
+## 9.1 End-to-End Flows
+### Critical User Journeys
+### Success Metrics
+## 9.2 Accessibility Requirements
+### WCAG Compliance Level
+### TTS Coverage
+### Touch Target Sizes
+## 9.3 Performance Targets
+### Client-Side Latency
+### Server-Side P95
+### Cache Hit Rates
+## 9.4 Analytics & Metrics
+### Required Events
+### Dashboard Views
+### Alert Thresholds
+
+Use bullet lists, avoid long prose.
+Include Korean examples where relevant.
+Mark priorities clearly (MUST/SHOULD/NICE).
+Do NOT include code blocks.

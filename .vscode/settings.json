@@ -1,0 +1,17 @@
+{
+  "typescript.validate.enable": false,
+  "javascript.validate.enable": false,
+  "files.exclude": {
+    "**/node_modules": true,
+    "**/.next": true,
+    "**/dist": true
+  },
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/.next": true,
+    "**/dist": true
+  },
+  "files.watcherExclude": {
+    "**/node_modules": true
+  }
+}

@@ -1,0 +1,409 @@
+===== IMPLEMENT_step_prompt.txt =====
+
+[ROLE]
+You are now the **feature implementation lead** in a code-aware environment (Copilot Code with Claude Sonnet or GPT Codex).
+Assume:
+- `docs/PLAN.md` exists and is up to date.
+- The monorepo skeleton from the SCAFFOLD step has been created and builds successfully (mobile Expo app, Next.js web console, FastAPI BFF, shared UI/types packages, basic infra/scripts).
+
+Your job in THIS STEP:
+- Implement the **core MVP features end-to-end** (DB access + BFF + mobile app + web console) so that they are demoable and usable.
+- Keep implementations **simple, deterministic, and senior-friendly**.
+- Do NOT over-engineer; prefer explicit functions and straightforward flows.
+
+[GLOBAL IMPLEMENTATION RULES]
+
+General:
+- Use the existing stack only: Expo RN, Next.js, FastAPI, Supabase, Redis, zod, React Query or similar.
+- Everything must typecheck (TS strict) and run (FastAPI, RN, Next) with minimal configuration.
+- Prefer clarity over cleverness.
+
+Error handling:
+- On BFF:
+  - Return clear JSON envelopes: `{ "ok": false, "error": { "code": "...", "message": "..."} }` or `{ "ok": true, "data": ... }`.
+  - Log internal errors with context (but without PII).
+- On clients:
+  - For recoverable issues, show short, polite Korean messages:
+    - e.g., “지금은 네트워크가 불안정해요. 잠시 후 다시 시도해 주세요.”
+  - Use simple toasts or inline banners; avoid modal spam.
+
+Accessibility:
+- All screens must use typography and spacing from `packages/ui` tokens based on A11y mode.
+- Buttons for main actions must be large enough (≥48dp/56dp/64dp).
+- Provide clear, descriptive `accessibilityLabel` / `aria-label`.
+- Ensure all critical content (cards, insights) can be spoken via TTS hook.
+
+Data access:
+- Client → Supabase direct reads where safe (simple lists, personal data).
+- Client → BFF for:
+  - Any writes,
+  - Any operations involving multiple tables,
+  - Any domain rules (gamification, scam check, voice parsing, Q&A, tool progress, family links).
+- DB operations in BFF must go through a small set of repository/service functions per domain.
+
+Gamification:
+- All gamification updates go through a single service module (e.g. `services/bff-fastapi/app/services/gamification.py`).
+- Do not mix point logic into UI or unrelated routes.
+
+[FEATURE-BY-FEATURE IMPLEMENTATION TASKS]
+
+You will progressively implement features in this order:
+1) Daily Card + Quiz + Gamification baseline  
+2) Insight Hub  
+3) Voice Intents  
+4) Scam Check  
+5) Tool Tracks  
+6) Light Community (Reactions/Q&A)  
+7) Family & Med Check  
+8) A11y behavior wiring (across all screens)  
+
+For each, you must wire:
+- DB (where needed),
+- BFF endpoints,
+- Mobile UI (primary),
+- Web UI (family console, where applicable),
+- Shared types.
+
+---
+
+### 1) Daily Card (오늘의 한 가지) + Quiz + Gamification baseline
+
+**DB expectations**
+- Table `cards`:
+  - Key fields: `id`, `user_id`, `date`, `type`, `payload`, `status`.
+  - `payload` JSON must contain:
+    - `title`, `tldr`, `body`, `impact`,
+    - `quiz` (optional): list of `{ id, question, options[], correctIndex, explanation }`.
+- Table `gamification`:
+  - `user_id`, `points`, `streak_days`, `badges`.
+
+**BFF**
+- Implement in `cards` router:
+  - `GET /v1/cards/today`:
+    - Inputs:
+      - Auth context (user id from JWT).
+    - Behavior:
+      - Select a card for “today” for this user.
+      - If none exists:
+        - Either pick most recent pre-generated card or return a simple fallback payload.
+      - Return:
+        - `{ ok: true, data: { card } }` where `card` matches `CardDto` in `packages/types`.
+    - Error cases:
+      - DB error → log, return `ok: false`.
+  - `POST /v1/cards/complete`:
+    - Input: `{ card_id, quizAnswers?: { [questionId]: selectedIndex } }`.
+    - Behavior:
+      - Mark card as completed (status).
+      - Evaluate quiz:
+        - For each question, compute correct/incorrect.
+      - Call gamification service:
+        - Award base points for completion.
+        - Extra points per correct answer.
+        - Update streak.
+      - Optionally create an `alerts` entry or log.
+      - Return scoreboard-like payload:
+        - `{ ok: true, data: { pointsAdded, totalPoints, streakDays, quizResult } }`.
+
+- Gamification service:
+  - Provide functions like:
+    - `award_for_card_completion(user_id, num_correct, num_questions, date)`.
+  - Encapsulate rules so they are easy to tweak:
+    - e.g., completion +5, each correct +2, daily streak bonus.
+
+**Mobile**
+- Hook(s):
+  - `useTodayCard()`:
+    - Fetch from `/v1/cards/today`.
+    - Manage loading/error state.
+  - `useCompleteCard()`:
+    - Post completion + quiz answers.
+- Screen:
+  - `HomeAScreen` (or dedicated `TodayCardScreen` component):
+    - Show:
+      - Card type tag (ex: “AI 활용법”, “디지털 안전”).
+      - Title, TL;DR, body, impact.
+      - “읽어주기” TTS 버튼.
+      - 퀴즈 섹션:
+        - Render large option buttons, one question at a time.
+        - Show feedback immediately.
+      - 완료 버튼:
+        - “오늘 카드 완료하기”.
+    - After completion:
+      - Show summary:
+        - 획득 포인트, 스트릭, 정답/오답 개수.
+      - Offer:
+        - Reaction buttons (“응원해요”, “도움됐어요”).
+
+**Web**
+- Optional for MVP:
+  - Dashboard shows last card type/date for each senior (if card completion data is accessible via view or usage counters).
+
+---
+
+### 2) Insight Hub
+
+**DB expectations**
+- `insights` table:
+  - `id`, `date`, `topic`, `title`, `summary`, `source`, `payload` (full body, impact).
+- `insight_follows`:
+  - `user_id`, `topic`.
+
+**BFF**
+- `GET /v1/insights?topic=&range=`:
+  - Filters:
+    - `topic` optional (single).
+    - `range` (e.g., `weekly`, `monthly`) to choose date window.
+  - Sorting:
+    - Newest first.
+  - Output:
+    - Paginated list: `[{ id, date, topic, title, summary, source }]`.
+- `GET /v1/insights/:id`:
+  - Return full detail:
+    - `summary`, full body, `impact`, `source`.
+- `POST /v1/insights/follow`:
+  - Input: `{ topic }`.
+  - Upsert in `insight_follows`.
+- `GET /v1/insights/following`:
+  - Return list of topics followed.
+
+**Mobile**
+- Hooks:
+  - `useInsightList(topic, range)`.
+  - `useInsightDetail(id)`.
+- Screens:
+  - `InsightListScreen`:
+    - Topic filter chips.
+    - Cards using `Card` component:
+      - Title, summary, date, small tag (topic).
+    - Tapping item → Detail.
+  - `InsightDetailScreen`:
+    - Full text (with a11y typography).
+    - TL;DR, impact, source.
+    - TTS button.
+    - Follow/Unfollow topic toggle.
+
+**Web**
+- Show what topics seniors are following and what insights were recently viewed (if you decide to record that later).
+
+---
+
+### 3) Voice Intents
+
+**BFF**
+- Implement pure function:
+  - `parse_voice_intent(text: str) -> ParsedIntent`:
+    - Use regex & simple string ops for Korean commands.
+    - Support:
+      - open, search, call, sms, remind, navigate.
+    - Return:
+      - `{ intent: "call", slots: { name: "엄마" } }` etc.
+- Endpoint `POST /v1/voice/intent`:
+  - Request: `{ text: string }` (audio already transcribed client-side or future).
+  - Response:
+    - `{ ok: true, data: { intent, slots, action } }`
+    - `action`:
+      - For `call`: `{ kind: "tel", telUri: "tel:..." }` or `{ kind: "contact_lookup", name: "..." }`.
+      - For `sms`: similar.
+      - For `navigate`: maps URL or app route suggestion.
+      - For `open`: e.g., `{ kind: "route", route: "/insights" }`.
+
+**Mobile**
+- Component:
+  - `VoiceOverlay`:
+    - For MVP, you can simulate with a text input that sends to BFF.
+    - Show:
+      - Recognized text.
+      - Parsed intent & summary line in Korean:
+        - ex: “엄마에게 전화 걸기”.
+      - Confirm/Cancel buttons.
+    - On confirm:
+      - For now, either:
+        - Navigate to suggested app route, or
+        - Log the intent; real dialer integration can be stubbed.
+- Integrate `VoiceOverlay` with:
+  - Home screen floating action button for “말하기”.
+
+---
+
+### 4) Scam Check
+
+**BFF**
+- Implement `check_scam_risk(text_or_url: str) -> { label, tips[] }`:
+  - Label selection:
+    - `danger` if obvious scam patterns.
+    - `warn` if suspicious.
+    - `safe` otherwise.
+  - Tips:
+    - Korean bullet points with concrete advice.
+- Endpoint `POST /v1/scam/check`:
+  - Input: `{ input: string }`.
+  - Output: `{ ok: true, data: { label, tips } }`.
+
+**Mobile**
+- `ScamCheckSheet`:
+  - Multi-line text field for pasting SMS/URL.
+  - “검사하기” 버튼.
+  - Result:
+    - Color-coded card (green/amber/red).
+    - Tips as bullet list.
+- Optionally log an alert in DB for pattern analysis (via BFF).
+
+**Web**
+- Simple page listing recent scam checks or aggregated stats (optional for MVP).
+
+---
+
+### 5) Tool Tracks (Miri/Canva/Sora – at least one fully implemented, others stubbed)
+
+**DB**
+- `tools_progress`:
+  - `user_id`, `tool` (e.g., "canva"), `step`, `status` ("not_started" | "in_progress" | "done"), `updated_at`.
+
+**BFF**
+- Endpoints:
+  - `GET /v1/tools/progress?tool=`:
+    - Returns list of steps + status.
+  - `POST /v1/tools/progress`:
+    - Input: `{ tool, step, status }`.
+    - Upsert into table.
+
+**Mobile**
+- For at least one tool (e.g., Canva):
+  - Screen `ToolTrackScreen`:
+    - Step list:
+      - Step 1: “템플릿 선택해 보기”
+      - Step 2: “글자를 바꿔 보기”
+      - Step 3: “이미지 바꿔 보기”
+      - Step 4: “완성본 저장해 보기”
+    - Each step:
+      - 설명(간단 한국어 지문).
+      - 체크박스 또는 “완료” 버튼.
+      - 작은 1문항 퀴즈(옵션).
+    - On completion:
+      - Call `POST /v1/tools/progress`.
+      - Call gamification service for tool-step completion.
+
+---
+
+### 6) Light Community – Reactions & Q&A
+
+**DB**
+- `reactions`: `user_id`, `target_type`, `target_id`, `kind`, `created_at`.
+- `qna_posts`: `id`, `author_id`, `topic`, `title`, `body`, `is_anon`, `ai_summary`, `created_at`.
+- `qna_votes`: optional, or simple like/“유용해요” count.
+
+**BFF**
+- Reactions:
+  - `POST /v1/reactions`:
+    - Input: `{ target_type: 'card' | 'insight' | 'course', target_id, kind: 'cheer' | 'useful' }`.
+    - Writes row; may aggregate counts in a view or SELECT with COUNT.
+- Q&A:
+  - `GET /v1/qna?topic=&limit=&offset=`:
+    - Returns list of posts:
+      - For `is_anon=true`, do not expose `author_id` (or show "익명").
+  - `POST /v1/qna`:
+    - Input: `{ topic, title, body, is_anon }`.
+    - Steps:
+      - Create row.
+      - Generate `ai_summary`:
+        - For MVP, simple deterministic rule (first N characters + " …").
+    - Output: created post payload.
+
+**Mobile**
+- Reactions:
+  - On card/insight detail, show:
+    - “응원해요”, “도움됐어요” buttons with counts.
+- Q&A:
+  - List screen:
+    - Filter by topic.
+    - Show title, short body or ai_summary, created_at.
+  - Detail (optional first iteration):
+    - Show full body, possible “유용해요” count.
+  - Create screen:
+    - Topic selector, title, body, is_anon toggle.
+
+**Web**
+- Read-only Q&A overview; optional simple filters.
+
+---
+
+### 7) Family & Med Check
+
+**DB**
+- `family_links`: `guardian_id`, `user_id`, `perms`.
+- `alerts`: can be reused for med-check events or dedicated med table.
+- `usage_counters`: aggregated counts per month.
+
+**BFF**
+- Family:
+  - `POST /v1/family/invite`:
+    - Input: `{ user_id, perms }`.
+    - Behavior:
+      - Create a row in `family_links`.
+      - Generate simple invite token (for MVP, a random string stored in a temporary table or encoded).
+  - `POST /v1/family/redeem`:
+    - Input: `{ invite_token }`.
+    - Links guardian account to user.
+- Usage:
+  - `GET /v1/usage`:
+    - For a given user (senior or guardian context), return:
+      - e.g., `cardsCompletedThisMonth`, `medCheckDaysThisMonth`, etc.
+- Med check:
+  - `POST /v1/med/check` (or use `/v1/alerts` with type="med_check"):
+    - Marks “today checked” for user.
+    - Calls gamification service.
+    - Optionally triggers a push/alert for guardian.
+
+**Mobile**
+- `MedCheckScreen` or section in Home/Ultra Home:
+  - One big button:
+    - Label: “오늘 약 먹기 체크하기”.
+  - After tap:
+    - Simple confirmation message.
+    - Optionally show streak.
+
+**Web**
+- Dashboard:
+  - For each senior:
+    - Show last med-check date.
+    - Indicator (OK / 오래 미체크).
+  - Show simple overview of activity (cards, med checks).
+
+---
+
+### 8) A11y Mode Wiring Across App
+
+**Mobile**
+- Implement A11y context/hook:
+  - Reads current mode (`normal`, `easy`, `ultra`) from profile or local storage.
+  - Provides:
+    - `fontSizes`, `spacing`, `buttonHeights`, `contrast` tokens.
+- Ensure:
+  - All screen-level components use this context.
+  - Key text components use `Typography` with variant tied to mode.
+
+**Web**
+- At minimum:
+  - Use `packages/ui` typography & spacing.
+  - Ensure contrast is adequate.
+  - For web console, A11y is important but not as optimized as mobile; still apply tokens.
+
+---
+
+[OUTPUT EXPECTATION]
+
+You MUST:
+- Modify and create actual code files inside the existing skeleton repo:
+  - BFF routers/services/schemas,
+  - mobile hooks/screens/components,
+  - web pages/components,
+  - shared types.
+- Keep the structure consistent with `docs/PLAN.md`.
+
+At the end of this IMPLEMENT step, produce a **summary (NOT code)**:
+- List of features fully wired end-to-end (UI → BFF → DB).
+- List of partially stubbed parts (e.g., real LLM summaries, full contact integration).
+- Manual test checklist:
+  - For each major feature, step-by-step “how to test” instructions in concise bullet points.
+
+Do NOT print large code blobs in the summary; the summary is for humans, the code should be in the repo.

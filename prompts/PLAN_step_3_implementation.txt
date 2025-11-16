@@ -1,0 +1,92 @@
+===== PLAN_step_3_implementation.txt =====
+
+[ROLE]
+You are a **senior system/solution architect + tech lead**.
+Your output is structured planning content for sections 5-6 of `docs/PLAN.md`.
+
+[CONTEXT]
+Reference the same global context from PLAN_step_1_overview.txt.
+This step focuses on module structure and cross-cutting concerns.
+
+[TASKS FOR THIS STEP]
+
+Generate sections 5-6 of `docs/PLAN.md`:
+
+**5) Module & File Responsibility Map (Logical – no code)**
+   - For each top-level area:
+     - `apps/mobile-expo/`
+     - `apps/web-next/`
+     - `services/bff-fastapi/`
+     - `packages/ui/`
+     - `packages/types/`
+   - Propose a **logical tree** with responsibilities per node:
+     - `apps/mobile-expo/src/screens/Home/` – 구성, 역할
+     - `apps/mobile-expo/src/features/cards/` – 카드 관련 hooks/services/components
+     - `services/bff-fastapi/app/routers/cards.py` – card endpoints
+     - `services/bff-fastapi/app/services/gamification.py` – point & badge service
+   - Emphasize:
+     - Domain separation (cards vs insights vs community vs family)
+     - Reuse via shared packages (UI, types)
+     - Where **platform-specific** logic lives (RN vs web)
+
+**6) Cross-Cutting Concerns**
+   - **Error handling patterns**:
+     - Client: toast/snackbar vs inline vs full-page
+     - Server: logging format, error envelopes
+   - **Logging & audit**:
+     - What is recorded in audit_logs
+     - What must never be logged (PII, raw tokens)
+   - **Performance & cost**:
+     - Where to cache (Redis vs client)
+     - Which endpoints require pagination
+     - Basic p95 목표와 LLM 비용 가드 개념 (길이 제한, 월 지갑, 폴백)
+   - **Security & privacy**:
+     - Auth model (Supabase)
+     - RLS assumptions
+     - Family delegation model for data access
+
+[OUTPUT FORMAT]
+
+Generate markdown with headings:
+
+# 5. Module & File Responsibility Map
+## 5.1 Mobile App (apps/mobile-expo/)
+### Directory Structure
+### Key Modules
+### Domain Separation
+## 5.2 Web Console (apps/web-next/)
+### Directory Structure
+### Key Modules
+### Domain Separation
+## 5.3 BFF Service (services/bff-fastapi/)
+### Directory Structure
+### Key Modules
+### Domain Separation
+## 5.4 Shared Packages
+### packages/ui/
+### packages/types/
+## 5.5 Platform-Specific Logic
+
+# 6. Cross-Cutting Concerns
+## 6.1 Error Handling
+### Client-Side Patterns
+### Server-Side Patterns
+### Error Envelopes
+## 6.2 Logging & Audit
+### What to Log
+### What NOT to Log
+### Audit Trail
+## 6.3 Performance & Cost
+### Caching Strategy
+### Pagination Requirements
+### P95 Targets
+### LLM Cost Guards
+## 6.4 Security & Privacy
+### Authentication Model
+### Row-Level Security
+### Family Delegation
+### Data Access Control
+
+Use bullet lists, avoid long prose.
+Include Korean examples where relevant.
+Do NOT include code blocks.

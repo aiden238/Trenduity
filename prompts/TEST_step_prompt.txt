@@ -1,0 +1,97 @@
+===== TEST_step_prompt.txt =====
+
+[ROLE]
+You are now the **testing lead**.
+Assume core logic and seed scripts are in place and the repo builds.
+
+Your job in THIS STEP:
+- Add **unit, integration, and basic e2e tests** for critical flows.
+- Focus on correctness, regressions, and senior-specific constraints (a11y, error messages).
+- Keep tests deterministic (no network to external APIs, no time-of-day dependence without control).
+
+[TASKS]
+
+1) Unit Tests – BFF (FastAPI/Python)
+   - Use Pytest.
+   - Test pure domain logic:
+     - **Voice Intent Parser**:
+       - 다양한 한국어 문장을 intent별로 테스트:
+         - “엄마에게 전화해 줘”, “내일 아침 9시에 약 먹으라고 알림 설정해 줘”, “근처 지하철역 길찾기 해 줘” 등.
+       - 기대: 올바른 intent, slots가 나와야 한다.
+       - edge case: 불명확한 문장 → “fallback” 또는 의도 없음 처리.
+     - **Scam Checker**:
+       - 명백한 사기 패턴(긴급/승인/즉시송금/단축URL 등) → `danger` 또는 `warn`.
+       - 평범한 예시 → `safe`.
+     - **Gamification Rules**:
+       - 카드 완료 시 포인트 증가/스트릭 업데이트.
+       - 퀴즈 정답 수에 따른 포인트 차이.
+       - 하루 건너뛰었을 때 스트릭이 끊기는지.
+   - Endpoint tests with FastAPI TestClient:
+       - `/v1/cards/today`, `/v1/cards/complete`
+       - `/v1/scam/check`
+       - `/v1/insights`
+       - `/v1/qna`, `/v1/reactions`
+     - 각 엔드포인트에 대해:
+       - 200 응답, JSON 구조 검증.
+       - 기본 happy path를 커버.
+
+2) Unit Tests – DTO/Schema (packages/types, zod)
+   - 실행환경: Vitest 또는 Jest.
+   - 각 DTO(zod 스키마)에 대해:
+     - 유효한 payload 예시 → parse 성공.
+     - 필수 필드 누락/잘못된 타입 → parse 실패.
+   - BFF에서 사용하는 응답 형태와 일치하는지 검증하는 역할을 한다.
+
+3) Component Tests – Mobile & Web (선택적이지만 추천)
+   - React Testing Library 기반 테스트.
+   - Mobile:
+     - Daily Card 컴포넌트:
+       - 카드 텍스트 렌더링.
+       - 퀴즈 보기 렌더링 및 클릭 시 콜백 호출.
+     - VoiceOverlay:
+       - text 입력 → intent summary 표시 → confirm 버튼이 올바른 핸들러를 부르는지.
+   - Web:
+     - Dashboard 컴포넌트:
+       - seed된 seniors를 리스트로 보여주는지.
+       - 중요한 통계(카드 완료, 복약 체크 등) placeholder라도 렌더되는지.
+
+4) e2e Smoke Tests (최소 수준)
+   - Playwright 또는 유사 툴 사용(가능할 경우).
+   - 시나리오 예:
+     - Web:
+       - `/` 대시보드 접속 → HTTP 200, 주요 요소 존재 확인.
+     - (옵션) Mobile:
+       - Expo app을 시뮬레이터에서 실행, 홈 스크린이 렌더되는지.
+   - e2e는 CI 환경에서 선택적으로 돌려도 괜찮다.
+
+5) A11y Checks
+   - Web:
+     - axe 또는 lighthouse CI를 이용해서 기본 a11y violations를 점검.
+   - Mobile:
+     - A11y context가 세 가지 모드(normal/easy/ultra)를 제대로 제공하는지 유닛테스트.
+     - 주요 텍스트 컴포넌트가 mode에 따라 폰트 사이즈/라인 높이를 다르게 사용하는지 간단 검증.
+
+6) CI Integration
+   - `.github/workflows/ci.yml`에 다음을 포함:
+     - `lint` (ESLint/Prettier)
+     - `test` (JS/TS용 테스트)
+     - `pytest` (Python/BFF 테스트)
+   - 최소 요구사항:
+     - main 브랜치에 머지되기 전, 모든 테스트가 통과해야 한다.
+   - 필요하다면 node_modules/venv 캐시 설정.
+
+[CONSTRAINTS]
+
+- 테스트는 외부 API나 실제 Supabase/Redis 인스턴스에 의존하지 않게 설계한다.
+  - DB 통합 테스트가 필요하다면, docker-compose로 올린 로컬 DB를 대상으로 한다(또는 mocking).
+- flakiness(가끔 실패하는 테스트)를 최대한 피하고, 재실행 시 항상 같은 결과를 보장한다.
+
+[OUTPUT FORMAT]
+
+- 각 언어/플랫폼별 테스트 파일을 추가:
+  - Python: `services/bff-fastapi/tests/`
+  - TypeScript: `apps/*/__tests__/` 또는 `packages/*/__tests__/`
+- CI 워크플로 파일에 테스트 명령 추가.
+- 마지막 출력에는:
+  - 전체 테스트 실행 명령(예: `pnpm test`, `pytest`).
+  - 각 테스트 스위트가 커버하는 기능을 1줄씩 요약한 리스트를 포함한다.

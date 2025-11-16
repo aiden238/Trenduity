@@ -1,0 +1,112 @@
+===== PLAN_step_2_domain.txt =====
+
+[ROLE]
+You are a **senior system/solution architect + tech lead**.
+Your output is structured planning content for sections 3-4 of `docs/PLAN.md`.
+
+[CONTEXT]
+Reference the same global context from PLAN_step_1_overview.txt.
+This step focuses on domain decomposition and data model design.
+
+[TASKS FOR THIS STEP]
+
+Generate sections 3-4 of `docs/PLAN.md`:
+
+**3) Domain & Feature Decomposition**
+   - For each domain: DailyCard, InsightHub, VoiceIntent, ScamCheck, ToolTrack, LightCommunity, FamilyMed, Gamification, A11y
+   - For each domain describe:
+     - Main user stories (for 50/60/70대 별 1-2개씩)
+     - Primary entities involved (e.g., card, insight, qna_post, reaction, family_link)
+     - Invariants:
+       - e.g., a card for a given date & user is at most one active item
+       - a Q&A post cannot be edited by others
+       - gamification points are non-negative
+     - Failure modes and how they surface to user:
+       - ex: 카드 불러오기 실패 → "지금은 네트워크가 불안정해요. 잠시 후 다시 시도해 주세요."
+
+**4) Data Model Overview (Conceptual, not DDL)**
+   - For each table: profiles, cards, courses, course_enrollments, family_links, sponsor_codes, alerts, usage_counters, audit_logs, insights, insight_follows, reactions, qna_posts, qna_votes, gamification, tools_progress
+   - Describe in plain language:
+     - Purpose of the table
+     - Key fields (IDs, foreign keys, enums, important JSON blobs like payload)
+     - Relationships (one-to-many, many-to-many)
+   - Describe the **authorization view**:
+     - Which actor can see/modify which rows: user(시니어), guardian(가족), org(기관)
+   - Describe **indexing & access patterns** at a conceptual level:
+     - ex: cards by (user_id, date), insights by (topic, date desc)
+
+[OUTPUT FORMAT]
+
+Generate markdown with headings:
+
+# 3. Domain & Feature Decomposition
+## 3.1 DailyCard
+### User Stories
+### Primary Entities
+### Invariants
+### Failure Modes
+## 3.2 InsightHub
+### User Stories
+### Primary Entities
+### Invariants
+### Failure Modes
+## 3.3 VoiceIntent
+### User Stories
+### Primary Entities
+### Invariants
+### Failure Modes
+## 3.4 ScamCheck
+### User Stories
+### Primary Entities
+### Invariants
+### Failure Modes
+## 3.5 ToolTrack
+### User Stories
+### Primary Entities
+### Invariants
+### Failure Modes
+## 3.6 LightCommunity
+### User Stories
+### Primary Entities
+### Invariants
+### Failure Modes
+## 3.7 FamilyMed
+### User Stories
+### Primary Entities
+### Invariants
+### Failure Modes
+## 3.8 Gamification
+### User Stories
+### Primary Entities
+### Invariants
+### Failure Modes
+## 3.9 Accessibility
+### User Stories
+### Primary Entities
+### Invariants
+### Failure Modes
+
+# 4. Data Model Overview
+## 4.1 Core Tables
+### profiles
+### cards
+### courses
+### course_enrollments
+### family_links
+### sponsor_codes
+### alerts
+### usage_counters
+### audit_logs
+### insights
+### insight_follows
+### reactions
+### qna_posts
+### qna_votes
+### gamification
+### tools_progress
+## 4.2 Authorization Model
+## 4.3 Access Patterns & Indexing
+
+Use bullet lists, avoid long prose.
+Include Korean examples for error messages.
+Do NOT include code blocks.

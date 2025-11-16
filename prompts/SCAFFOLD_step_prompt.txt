@@ -1,0 +1,162 @@
+===== SCAFFOLD_step_prompt.txt =====
+
+[ROLE]
+You are now acting as a **repo scaffolding & configuration assistant** in Copilot Code (Claude Sonnet / GPT Codex).
+Assume the PLAN step is already completed and `docs/PLAN.md` exists.
+
+Your job in THIS STEP is to:
+- Initialize the **monorepo structure, configs, and minimal runnable skeletons**.
+- Ensure everything typechecks/builds **without** implementing domain-specific business logic.
+- Prepare the repo so later IMPLEMENT/SEED/TEST/DOCS steps can focus on feature logic.
+
+[PROJECT CONTEXT – SHORT REMINDER]
+
+Product: “50–70대 AI 학습 앱”  
+Stack: Expo RN (mobile), Next.js (web console), FastAPI BFF, Supabase(Postgres+Auth+RLS+Storage), Redis(Upstash)  
+Key modules: Daily Cards/Quizzes, Insight Hub, Voice Intents(6), Scam Check, Tool Tracks(Miri/Canva/Sora), Light Community, Family & Med Check, Gamification, A11y modes.
+
+[REPO LAYOUT TO MATERIALIZE]
+
+Create this structure (adjusting only where tooling demands):
+
+repo/
+  apps/
+    mobile-expo/
+    web-next/
+  services/
+    bff-fastapi/
+  packages/
+    ui/
+    types/
+  infra/
+    dev/
+    ci/
+  scripts/
+  docs/
+  .gitignore
+  package.json (or pnpm-workspace.json / turbo.json)
+  README.md
+  .env.example
+
+[TASKS]
+
+1) **Workspace & Tooling Setup**
+   - At repo root:
+     - `package.json` (or pnpm/monorepo manager) configured to treat `apps/*`, `services/*`, `packages/*` as workspaces.
+     - Include basic scripts: `dev`, `lint`, `test`, `typecheck`, `format`.
+   - `tsconfig.base.json` at root, extended by subprojects.
+   - ESLint + Prettier config (shared) for TS/TSX, both RN/Next.
+
+2) **packages/ui – Design Tokens & Basic Components**
+   - Create:
+     - `packages/ui/src/tokens/a11y.ts` (or .json imported)
+       - Define the 3 accessibility modes (normal/easy/ultra) with font sizes, touchTargetDp, spacing, colors.
+     - `packages/ui/src/components/`:
+       - `Typography` (respecting a11y tokens)
+       - `Button` (primary/secondary, large touch targets)
+       - `Card` (for Daily Cards/Insights)
+       - `SectionHeader`
+     - Ensure components are usable from both RN and web (if necessary, separate RN/web entrypoints).
+   - Export from `packages/ui/index.ts`.
+
+3) **packages/types – DTO & Schema Placeholders**
+   - `packages/types/src/dto/`:
+     - `card.ts`, `insight.ts`, `qna.ts`, `reaction.ts`, `toolsProgress.ts`, `gamification.ts`
+     - Use zod schemas + corresponding TypeScript types.
+     - Keep fields minimal, matching the high-level spec (ID, title, summary, etc.), but no heavy validation logic yet.
+   - Export everything from `packages/types/index.ts`.
+
+4) **apps/mobile-expo – Expo RN Skeleton**
+   - Initialize a barebones Expo app in `apps/mobile-expo`:
+     - Entry file: `App.tsx`
+     - Navigation: React Navigation with bottom tabs: Home / Courses / Insights / More(or Settings).
+   - Screens (dummy screens for now):
+     - `HomeAScreen` (default home layout)
+     - `HomeCScreen` (ultra/simple home layout)
+     - `InsightListScreen`
+     - `InsightDetailScreen`
+     - `CourseListScreen`
+     - `CourseTaskScreen`
+     - `MedCheckScreen`
+     - `QnaListScreen` / `QnaCreateScreen`
+     - `SettingsScreen` (including A11y mode toggle)
+   - Integrate:
+     - A basic a11y context hook that reads from a static `a11y` config and switches mode (normal/easy/ultra).
+     - Expo Speech stub: one custom hook `useTTS()` with a `speak(text: string)` function that currently just logs or calls `Speech.speak` with default options.
+   - For now, each screen can render:
+     - A title using `Typography`
+     - Placeholder Korean labels (예: “오늘의 한 가지”, “복약 체크하기”)
+     - No backend calls yet, just TODO comments.
+
+5) **apps/web-next – Next.js Web Console Skeleton**
+   - Configure Next.js(app router) in `apps/web-next`:
+     - `app/layout.tsx`, `app/page.tsx` etc.
+   - Routes:
+     - `/` → dashboard summary placeholder
+     - `/members` → list of “senior profiles”
+     - `/members/[id]` → detail view placeholder
+     - `/alerts` → med/scam alerts placeholder
+     - `/encourage` → simple form to send “응원” to a senior
+   - Setup a simple Supabase browser client (stub config, read from env).
+   - Use `packages/ui` components for layout/typography where possible.
+
+6) **services/bff-fastapi – BFF Skeleton**
+   - Structure:
+     - `services/bff-fastapi/app/main.py` — FastAPI app with `/health` endpoint.
+     - `app/routers/`:
+       - `cards.py` (GET /v1/cards/today placeholder)
+       - `voice.py` (POST /v1/voice/intent placeholder)
+       - `scam.py` (POST /v1/scam/check placeholder)
+       - `insights.py` (GET /v1/insights placeholder)
+       - `community.py` (POST /v1/reactions, GET/POST /v1/qna placeholders)
+       - `family.py` (POST /v1/family/invite/redeem, GET /v1/usage placeholders)
+     - `app/schemas/`:
+       - Pydantic models matching DTOs (card, insight, qna, reaction, toolsProgress, usage).
+     - `app/core/config.py` for reading env (Supabase keys, Redis URL, etc.).
+   - Add:
+     - A simple dependency stub for DB/Redis session (no actual queries yet).
+     - CORS middleware for mobile & web origins.
+   - Ensure `uvicorn app.main:app` runs without errors.
+
+7) **infra/dev – Dev Environment**
+   - `infra/dev/docker-compose.yml`:
+     - Postgres (for Supabase dev simulation; actual Supabase cloud can be wired later)
+     - Redis
+     - OPTIONAL: Mailhog (for email debug, even if unused now; comment if so)
+   - Place TODO comments where integration with real Supabase would replace local Postgres.
+
+8) **scripts/**
+   - `scripts/bootstrap.sh`: pseudo-commands for:
+     - Install dependencies
+     - Setup git hooks
+   - `scripts/dev.sh`: pseudo-commands to:
+     - Start docker compose
+     - Run BFF, web, and mobile dev servers (commented example commands)
+
+9) **Root README & .env.example**
+   - `README.md`:
+     - Short project description in Korean
+     - How to run dev env (very high-level)
+     - Mention that business logic is NOT yet implemented—just skeleton.
+   - `.env.example`:
+     - SUPABASE_URL, SUPABASE_ANON_KEY, SERVICE_ROLE_KEY
+     - REDIS_URL, SENTRY_DSN, etc.
+
+[CONSTRAINTS]
+
+- This step is about **compilable skeletons** only:
+  - All apps must build/run (at least barebones).
+  - All modules must import/export correctly.
+  - Business logic (real queries, real rules, LLM calls) must be TODO-stubbed.
+- No test suites or seeding logic yet (that’s for later steps).
+- Use simple, obvious placeholder implementations (e.g. `return {"status": "TODO"}`).
+
+[OUTPUT FORMAT]
+
+Directly edit/create files in the repo.
+At the end of this step, print a **summary** that lists:
+- All created/modified files
+- Any TODO markers you intentionally left
+- How to run each part locally (commands or pseudo-commands)
+
+Do NOT produce extra planning docs here. Focus on code/config skeletons only.
