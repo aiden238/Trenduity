@@ -16,7 +16,7 @@ export const InsightDetailScreen = () => {
   const { data: insight, isLoading, error } = useInsightDetail(insightId);
   const { data: followingTopics } = useFollowingTopics();
   const followTopic = useFollowTopic();
-  const { speak, stop } = useTTS();
+  const { speak, stop, isSpeaking } = useTTS();
   const { mode, spacing, buttonHeight, fontSizes } = useA11y();
   
   // 로딩 상태
@@ -46,8 +46,12 @@ export const InsightDetailScreen = () => {
   
   // TTS 핸들러
   const handleTTS = () => {
-    const fullText = `${insight.title}. ${insight.summary}. ${insight.body}. ${insight.impact}`;
-    speak(fullText);
+    if (isSpeaking) {
+      stop();
+    } else {
+      const fullText = `${insight.title}. ${insight.summary}. ${insight.body}. ${insight.impact}`;
+      speak(fullText);
+    }
   };
   
   // 팔로우 핸들러
@@ -138,9 +142,11 @@ export const InsightDetailScreen = () => {
             onPress={handleTTS}
             variant="secondary"
             style={{ height: buttonHeight }}
-            accessibilityLabel="인사이트 읽어주기"
+            accessibilityRole="button"
+            accessibilityLabel={isSpeaking ? "읽기 중지" : "인사이트 읽어주기"}
+            accessibilityHint={isSpeaking ? "버튼을 누르면 읽기가 멈춥니다" : "버튼을 누르면 인사이트 내용을 소리내어 읽어줍니다"}
           >
-            🎤 읽어주기
+            {isSpeaking ? '⏸️ 중지' : '🎤 읽어주기'}
           </Button>
           
           {/* 팔로우 버튼 */}
@@ -150,7 +156,9 @@ export const InsightDetailScreen = () => {
             variant={isFollowing ? 'outline' : 'primary'}
             style={{ marginTop: spacing, height: buttonHeight }}
             disabled={followTopic.isPending}
+            accessibilityRole="button"
             accessibilityLabel={isFollowing ? '주제 팔로우 해제' : '주제 팔로우'}
+            accessibilityHint={isFollowing ? '버튼을 누르면 이 주제 팔로우를 해제합니다' : '버튼을 누르면 이 주제의 새 인사이트를 받아볼 수 있습니다'}
           >
             {followTopic.isPending
               ? '처리 중...'

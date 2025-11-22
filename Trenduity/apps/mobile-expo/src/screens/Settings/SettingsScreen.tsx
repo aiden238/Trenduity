@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, Text, Pressable, ScrollView } from 'react-native';
+import { View, StyleSheet, Text, Pressable, ScrollView, Animated } from 'react-native';
 import { useA11y } from '../../contexts/A11yContext';
 import { ScamCheckSheet } from '../../components/ScamCheckSheet';
 
@@ -27,7 +27,7 @@ const A11Y_MODES = [
  * 접근성 모드 선택 UI 제공
  */
 export const SettingsScreen = () => {
-  const { mode, setMode, spacing, buttonHeight, fontSizes } = useA11y();
+  const { mode, setMode, spacing, buttonHeight, fontSizes, scaleAnim } = useA11y();
   const [showScamCheck, setShowScamCheck] = useState(false);
 
   return (
@@ -84,8 +84,10 @@ export const SettingsScreen = () => {
                   height: buttonHeight,
                   justifyContent: 'center',
                 }}
-                accessibilityLabel={`${modeOption.label} 모드`}
                 accessibilityRole="button"
+                accessibilityLabel={`${modeOption.label} 모드`}
+                accessibilityHint={`버튼을 누르면 ${modeOption.description}`}
+                accessibilityState={{ selected: mode === modeOption.key }}
               >
                 <Text
                   style={{
@@ -111,17 +113,112 @@ export const SettingsScreen = () => {
         </View>
 
         {/* 미리보기 */}
-        <View
+        <Animated.View
           style={{
             marginTop: spacing * 2,
             padding: spacing,
             backgroundColor: '#F0F8FF',
             borderRadius: 8,
+            transform: [{ scale: scaleAnim }],
           }}
         >
-          <Text style={{ fontSize: fontSizes.body, color: '#212121' }}>
-            ✨ 미리보기: 이 화면이 바로 선택한 크기로 보여요!
+          <Text
+            style={{
+              fontSize: fontSizes.heading2,
+              fontWeight: '600',
+              color: '#2196F3',
+              marginBottom: spacing / 2,
+            }}
+          >
+            ✨ 실시간 미리보기
           </Text>
+          <Text style={{ fontSize: fontSizes.body, color: '#212121' }}>
+            제목 크기: {fontSizes.heading1}dp
+          </Text>
+          <Text style={{ fontSize: fontSizes.body, color: '#212121' }}>
+            본문 크기: {fontSizes.body}dp
+          </Text>
+          <Text style={{ fontSize: fontSizes.body, color: '#212121' }}>
+            버튼 높이: {buttonHeight}dp
+          </Text>
+          <Text
+            style={{
+              fontSize: fontSizes.caption,
+              color: '#666666',
+              marginTop: spacing / 2,
+            }}
+          >
+            💡 모드 변경 시 즉시 화면 크기가 바뀌어요!
+          </Text>
+        </Animated.View>
+
+        {/* 터치 영역 안내 */}
+        <View
+          style={{
+            marginTop: spacing * 2,
+            padding: spacing,
+            backgroundColor: '#FFF4E6',
+            borderRadius: 8,
+          }}
+        >
+          <Text
+            style={{
+              fontSize: fontSizes.body,
+              color: '#212121',
+            }}
+          >
+            ✋ 터치 영역: 모든 버튼은 최소 {buttonHeight}dp 크기예요.
+          </Text>
+          <Text
+            style={{
+              fontSize: fontSizes.caption,
+              color: '#666666',
+              marginTop: 4,
+            }}
+          >
+            손떨림이 있어도 쉽게 누를 수 있어요.
+          </Text>
+        </View>
+
+        {/* 가족 연결 */}
+        <View style={{ marginTop: spacing * 2 }}>
+          <Text
+            style={{
+              fontSize: fontSizes.heading2,
+              fontWeight: '600',
+              color: '#212121',
+            }}
+          >
+            가족 기능
+          </Text>
+
+          <Pressable
+            onPress={() => {
+              // TODO: 네비게이션 연결 (FamilyLinkScreen으로 이동)
+              console.log('가족 연결 화면으로 이동');
+            }}
+            style={{
+              marginTop: spacing,
+              height: buttonHeight,
+              backgroundColor: '#4CAF50',
+              borderRadius: 8,
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}
+            accessibilityRole="button"
+            accessibilityLabel="가족 연결"
+            accessibilityHint="버튼을 누르면 가족과 연결하여 학습 활동을 공유할 수 있습니다"
+          >
+            <Text
+              style={{
+                fontSize: fontSizes.body,
+                fontWeight: '600',
+                color: '#FFFFFF',
+              }}
+            >
+              👨‍👩‍👧‍👦 가족 연결
+            </Text>
+          </Pressable>
         </View>
 
         {/* 사기 검사 */}
@@ -146,8 +243,9 @@ export const SettingsScreen = () => {
               justifyContent: 'center',
               alignItems: 'center',
             }}
-            accessibilityLabel="사기 검사"
             accessibilityRole="button"
+            accessibilityLabel="사기 검사"
+            accessibilityHint="버튼을 누르면 의심스러운 문자나 메시지를 검사할 수 있습니다"
           >
             <Text
               style={{

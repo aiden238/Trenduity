@@ -4,6 +4,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { HomeAScreen } from '../screens/Home/HomeAScreen';
 import { InsightListScreen } from '../screens/Insights/InsightListScreen';
 import { CourseListScreen } from '../screens/Courses/CourseListScreen';
+import { MedCheckScreen } from '../screens/MedCheck/MedCheckScreen';
 import { SettingsScreen } from '../screens/Settings/SettingsScreen';
 
 const Tab = createBottomTabNavigator();
@@ -31,6 +32,11 @@ export const RootNavigator = () => {
           name="Courses"
           component={CourseListScreen}
           options={{ title: '코스' }}
+        />
+        <Tab.Screen
+          name="MedCheck"
+          component={MedCheckScreen}
+          options={{ title: '복약체크' }}
         />
         <Tab.Screen
           name="Settings"

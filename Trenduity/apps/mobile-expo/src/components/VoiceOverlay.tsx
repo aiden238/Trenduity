@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Modal, View, StyleSheet, TextInput, Linking, Pressable, Text } from 'react-native';
+import { Modal, View, StyleSheet, TextInput, Linking, Pressable, Text, Alert } from 'react-native';
 import { useA11y } from '../contexts/A11yContext';
 import { useVoiceIntent, ParsedIntent } from '../hooks/useVoiceIntent';
 import { useNavigation } from '@react-navigation/native';
@@ -53,17 +53,17 @@ export default function VoiceOverlay({ visible, onClose }: Props) {
         Linking.openURL(action.url);
       } else if (action.kind === 'contact_lookup') {
         // TODO: 연락처 앱 연동 (실제 구현 필요)
-        alert(`${action.name}님의 연락처를 찾아주세요.`);
+        Alert.alert('연락처 찾기', `${action.name}님의 연락처를 찾아주세요.`);
       } else if (action.kind === 'sms') {
         // TODO: SMS 앱 연동
-        alert(`${action.name}님께 문자를 보내세요.`);
+        Alert.alert('문자 보내기', `${action.name}님께 문자를 보내세요.`);
       } else if (action.kind === 'reminder') {
         // 알림 기능 미구현
-        alert('알림 기능은 곧 지원 예정이에요.');
+        Alert.alert('알림', '알림 기능은 곧 지원 예정이에요.');
       }
     } catch (err) {
       console.error('Action execution error:', err);
-      alert('명령 실행에 실패했어요.');
+      Alert.alert('오류', '명령 실행에 실패했어요.');
     }
     
     // 닫기
@@ -84,8 +84,14 @@ export default function VoiceOverlay({ visible, onClose }: Props) {
       transparent
       animationType="slide"
       onRequestClose={handleClose}
+      accessibilityViewIsModal={true}
     >
-      <Pressable style={styles.overlay} onPress={handleClose}>
+      <Pressable
+        style={styles.overlay}
+        onPress={handleClose}
+        accessibilityLabel="음성 명령 닫기"
+        accessibilityRole="button"
+      >
         <Pressable
           style={[styles.modal, { padding: spacing * 2 }]}
           onPress={(e) => e.stopPropagation()}
@@ -97,6 +103,7 @@ export default function VoiceOverlay({ visible, onClose }: Props) {
               fontWeight: '700',
               color: '#212121',
             }}
+            accessibilityRole="header"
           >
             🎤 음성 명령
           </Text>
@@ -131,7 +138,72 @@ export default function VoiceOverlay({ visible, onClose }: Props) {
                 multiline
                 autoFocus
                 accessibilityLabel="음성 명령 입력"
+                accessibilityHint="전화, 문자, 검색 등 음성 명령을 입력하세요"
               />
+              
+              {/* 빠른 명령 버튼 */}
+              <View style={{ marginTop: spacing * 1.5 }}>
+                <Text
+                  style={{
+                    fontSize: fontSizes.caption,
+                    color: '#666666',
+                    marginBottom: spacing / 2,
+                    fontWeight: '600'
+                  }}
+                >
+                  빠른 명령
+                </Text>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing / 2 }}>
+                  <Pressable
+                    onPress={() => setInputText('전화 걸기')}
+                    style={[styles.quickButton, { padding: spacing / 2 }]}
+                    accessibilityRole="button"
+                    accessibilityLabel="전화 걸기 명령 입력"
+                  >
+                    <Text style={{ fontSize: fontSizes.caption }}>📞 전화</Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => setInputText('문자 보내기')}
+                    style={[styles.quickButton, { padding: spacing / 2 }]}
+                    accessibilityRole="button"
+                    accessibilityLabel="문자 보내기 명령 입력"
+                  >
+                    <Text style={{ fontSize: fontSizes.caption }}>💬 문자</Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => setInputText('검색하기')}
+                    style={[styles.quickButton, { padding: spacing / 2 }]}
+                    accessibilityRole="button"
+                    accessibilityLabel="검색하기 명령 입력"
+                  >
+                    <Text style={{ fontSize: fontSizes.caption }}>🔍 검색</Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => setInputText('길 찾기')}
+                    style={[styles.quickButton, { padding: spacing / 2 }]}
+                    accessibilityRole="button"
+                    accessibilityLabel="길 찾기 명령 입력"
+                  >
+                    <Text style={{ fontSize: fontSizes.caption }}>🗺️ 길찾기</Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => setInputText('알람 설정')}
+                    style={[styles.quickButton, { padding: spacing / 2 }]}
+                    accessibilityRole="button"
+                    accessibilityLabel="알람 설정 명령 입력"
+                  >
+                    <Text style={{ fontSize: fontSizes.caption }}>⏰ 알람</Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => setInputText('메모하기')}
+                    style={[styles.quickButton, { padding: spacing / 2 }]}
+                    accessibilityRole="button"
+                    accessibilityLabel="메모하기 명령 입력"
+                  >
+                    <Text style={{ fontSize: fontSizes.caption }}>📝 메모</Text>
+                  </Pressable>
+                </View>
+              </View>
               
               {/* 예시 명령어 */}
               <View style={{ marginTop: spacing }}>
@@ -177,6 +249,8 @@ export default function VoiceOverlay({ visible, onClose }: Props) {
                   }}
                   accessibilityRole="button"
                   accessibilityLabel="확인"
+                  accessibilityHint="입력한 명령을 분석합니다"
+                  accessibilityState={{ disabled: !inputText.trim() || parseIntent.isPending }}
                 >
                   <Text style={{ fontSize: fontSizes.body, fontWeight: '600', color: '#FFF' }}>
                     {parseIntent.isPending ? '분석 중...' : '확인'}
@@ -255,6 +329,7 @@ export default function VoiceOverlay({ visible, onClose }: Props) {
                   }}
                   accessibilityRole="button"
                   accessibilityLabel="취소"
+                  accessibilityHint="명령 실행을 취소하고 닫습니다"
                 >
                   <Text style={{ fontSize: fontSizes.body, fontWeight: '600', color: '#212121' }}>
                     취소
@@ -272,6 +347,7 @@ export default function VoiceOverlay({ visible, onClose }: Props) {
                   }}
                   accessibilityRole="button"
                   accessibilityLabel="실행"
+                  accessibilityHint="분석된 명령을 실행합니다"
                 >
                   <Text style={{ fontSize: fontSizes.body, fontWeight: '600', color: '#FFF' }}>
                     실행
@@ -311,5 +387,11 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderLeftWidth: 4,
     borderLeftColor: '#2196F3',
+  },
+  quickButton: {
+    backgroundColor: '#F5F5F5',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
   },
 });

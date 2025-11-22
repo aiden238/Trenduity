@@ -87,7 +87,9 @@ export const CompletionModal = ({ data, onClose, mode }: Props) => {
             variant="primary"
             onPress={onClose}
             style={{ marginTop: spacing * 2, height: buttonHeight }}
+            accessibilityRole="button"
             accessibilityLabel="완료 모달 닫기"
+            accessibilityHint="버튼을 누르면 홈 화면으로 돌아갑니다"
           >
             확인
           </Button>

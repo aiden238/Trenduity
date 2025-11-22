@@ -8,6 +8,7 @@ import {
   TextInput,
   ScrollView,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { useA11y } from '../contexts/A11yContext';
 import { useScamCheck, ScamCheckResult, ScamLabel } from '../hooks/useScamCheck';
@@ -53,7 +54,7 @@ export function ScamCheckSheet({ visible, onClose }: ScamCheckSheetProps) {
 
   const handleCheck = async () => {
     if (inputText.trim().length < 5) {
-      alert('최소 5자 이상 입력해 주세요.');
+      Alert.alert('입력 필요', '최소 5자 이상 입력해 주세요.');
       return;
     }
 
@@ -65,7 +66,7 @@ export function ScamCheckSheet({ visible, onClose }: ScamCheckSheetProps) {
           setStage('result');
         },
         onError: (error: any) => {
-          alert(error.message || '검사에 실패했습니다. 다시 시도해 주세요.');
+          Alert.alert('오류', error.message || '검사에 실패했습니다. 다시 시도해 주세요.');
         },
       }
     );

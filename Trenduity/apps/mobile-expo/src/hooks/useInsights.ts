@@ -56,8 +56,8 @@ export function useInsightList(
       
       return response.data.data.insights;
     },
-    staleTime: 1000 * 60 * 10, // 10분
-    gcTime: 1000 * 60 * 30, // 30분
+    staleTime: 1000 * 60 * 15, // 15분 (인사이트는 주간/월간 데이터, 덜 자주 변경)
+    gcTime: 1000 * 60 * 60, // 1시간
   });
 }
 

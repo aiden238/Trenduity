@@ -73,8 +73,8 @@ export function useTodayCard() {
       
       return response.data.data.card;
     },
-    staleTime: 1000 * 60 * 5, // 5분
-    gcTime: 1000 * 60 * 10, // 10분 (구 cacheTime)
+    staleTime: 1000 * 60 * 60, // 1시간 (카드는 하루 1개, 자주 변경 안 됨)
+    gcTime: 1000 * 60 * 120, // 2시간
   });
 }
 

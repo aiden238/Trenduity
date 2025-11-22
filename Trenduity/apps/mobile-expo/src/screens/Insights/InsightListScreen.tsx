@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { Typography, Card, Button } from '@repo/ui';
+import { View, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
+import { Typography, Card, Button, Spinner, EmptyState, ErrorState } from '@repo/ui';
 import { useA11y } from '../../contexts/A11yContext';
 import { useInsightList, useFollowingTopics } from '../../hooks/useInsights';
 import { useNavigation } from '@react-navigation/native';
@@ -34,24 +34,15 @@ export const InsightListScreen = () => {
   
   // 로딩 상태
   if (isLoading) {
-    return (
-      <View style={[styles.container, styles.centered]}>
-        <ActivityIndicator size="large" color="#2196F3" />
-        <Typography variant="body" mode={mode} style={{ marginTop: spacing }}>
-          인사이트를 불러오는 중이에요...
-        </Typography>
-      </View>
-    );
+    return <Spinner size="large" color="#2196F3" />;
   }
   
   // 에러 상태
   if (error) {
     return (
-      <View style={[styles.container, styles.centered]}>
-        <Typography variant="body" mode={mode}>
-          인사이트를 불러올 수 없어요. 😢
-        </Typography>
-      </View>
+      <ErrorState
+        message="인사이트를 불러올 수 없어요. 잠시 후 다시 시도해 주세요."
+      />
     );
   }
   
@@ -75,7 +66,10 @@ export const InsightListScreen = () => {
                   { marginHorizontal: spacing / 2 },
                   isSelected && styles.topicChipSelected
                 ]}
+                accessibilityRole="button"
                 accessibilityLabel={`${item.label} 주제 필터`}
+                accessibilityHint="버튼을 누르면 해당 주제의 인사이트만 표시됩니다"
+                accessibilityState={{ selected: isSelected }}
               >
                 <Typography
                   variant="body"
@@ -100,6 +94,9 @@ export const InsightListScreen = () => {
           onPress={() => setRange('weekly')}
           variant={range === 'weekly' ? 'primary' : 'outline'}
           style={{ flex: 1, marginRight: spacing / 2 }}
+          accessibilityRole="button"
+          accessibilityLabel="최근 7일 인사이트 보기"
+          accessibilityHint="버튼을 누르면 최근 일주일 인사이트를 표시합니다"
         >
           최근 7일
         </Button>
@@ -108,6 +105,9 @@ export const InsightListScreen = () => {
           onPress={() => setRange('monthly')}
           variant={range === 'monthly' ? 'primary' : 'outline'}
           style={{ flex: 1, marginLeft: spacing / 2 }}
+          accessibilityRole="button"
+          accessibilityLabel="최근 30일 인사이트 보기"
+          accessibilityHint="버튼을 누르면 최근 한 달 인사이트를 표시합니다"
         >
           최근 30일
         </Button>
@@ -125,7 +125,9 @@ export const InsightListScreen = () => {
           return (
             <TouchableOpacity
               onPress={() => handleInsightPress(item.id)}
+              accessibilityRole="button"
               accessibilityLabel={`인사이트: ${item.title}`}
+              accessibilityHint="버튼을 누르면 인사이트 전체 내용을 볼 수 있습니다"
             >
               <Card mode={mode} style={{ marginBottom: spacing }}>
                 {/* 주제 태그 */}

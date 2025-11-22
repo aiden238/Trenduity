@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { View, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
-import { Typography, Button, Card } from '@repo/ui';
+import { View, ScrollView, StyleSheet } from 'react-native';
+import { Typography, Button, Card, Spinner, ErrorState } from '@repo/ui';
 import { useA11y } from '../../contexts/A11yContext';
 import { useTTS } from '../../hooks/useTTS';
 import { useTodayCard, useCompleteCard } from '../../hooks/useTodayCard';
@@ -20,7 +20,7 @@ import VoiceOverlay from '../../components/VoiceOverlay';
  */
 export const HomeAScreen = () => {
   const { mode, spacing, buttonHeight, fontSizes } = useA11y();
-  const { speak } = useTTS();
+  const { speak, stop, isSpeaking } = useTTS();
   const { data: card, isLoading, error } = useTodayCard();
   const completeCard = useCompleteCard();
   
@@ -31,27 +31,15 @@ export const HomeAScreen = () => {
   
   // 로딩 상태
   if (isLoading) {
-    return (
-      <View style={[styles.container, styles.centered]}>
-        <ActivityIndicator size="large" color="#1976D2" />
-        <Typography variant="body" mode={mode} style={{ marginTop: spacing }}>
-          카드를 불러오는 중이에요...
-        </Typography>
-      </View>
-    );
+    return <Spinner size="large" color="#1976D2" />;
   }
   
   // 에러 상태
   if (error || !card) {
     return (
-      <View style={[styles.container, styles.centered]}>
-        <Typography variant="body" mode={mode}>
-          카드를 불러올 수 없어요. 😢
-        </Typography>
-        <Typography variant="caption" mode={mode} style={{ marginTop: spacing }}>
-          {error?.message || '잠시 후 다시 시도해 주세요.'}
-        </Typography>
-      </View>
+      <ErrorState
+        message={error?.message || '카드를 불러올 수 없어요. 잠시 후 다시 시도해 주세요.'}
+      />
     );
   }
   
@@ -67,8 +55,12 @@ export const HomeAScreen = () => {
   
   // TTS 핸들러
   const handleTTS = () => {
-    const fullText = `${payload.title}. ${payload.tldr}. ${payload.body}. ${payload.impact}`;
-    speak(fullText);
+    if (isSpeaking) {
+      stop();
+    } else {
+      const fullText = `${payload.title}. ${payload.tldr}. ${payload.body}. ${payload.impact}`;
+      speak(fullText);
+    }
   };
   
   // 완료 핸들러
@@ -138,15 +130,17 @@ export const HomeAScreen = () => {
           </Typography>
         </Card>
         
-        {/* 읽어주기 버튼 */}
+        {/* TTS 버튼 */}
         <Button
           mode={mode}
           variant="secondary"
           onPress={handleTTS}
           style={{ marginTop: spacing, height: buttonHeight }}
-          accessibilityLabel="카드 내용 읽어주기"
+          accessibilityRole="button"
+          accessibilityLabel={isSpeaking ? "읽기 중지" : "카드 내용 읽어주기"}
+          accessibilityHint={isSpeaking ? "버튼을 누르면 읽기가 멈춥니다" : "버튼을 누르면 카드 내용을 소리내어 읽어줍니다"}
         >
-          🎤 읽어주기
+          {isSpeaking ? '⏸️ 중지' : '🎤 읽어주기'}
         </Button>
         
         {/* 퀴즈 섹션 */}
@@ -170,7 +164,10 @@ export const HomeAScreen = () => {
             opacity: isCompleted || !allQuizAnswered ? 0.5 : 1
           }}
           disabled={isCompleted || !allQuizAnswered || completeCard.isPending}
+          accessibilityRole="button"
           accessibilityLabel={isCompleted ? '이미 완료된 카드예요' : '오늘의 카드 완료하기'}
+          accessibilityHint={isCompleted ? "" : "버튼을 누르면 포인트를 받고 스트릭이 올라갑니다"}
+          accessibilityState={{ disabled: isCompleted || !allQuizAnswered }}
         >
           {completeCard.isPending ? '처리 중...' : isCompleted ? '✅ 완료됨' : '완료하기'}
         </Button>
@@ -199,7 +196,9 @@ export const HomeAScreen = () => {
             shadowRadius: 4,
             elevation: 5,
           }}
+          accessibilityRole="button"
           accessibilityLabel="음성 명령 시작"
+          accessibilityHint="버튼을 누르면 음성으로 명령을 말할 수 있습니다"
         >
           🎤 말하기
         </Button>

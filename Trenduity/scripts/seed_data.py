@@ -84,8 +84,7 @@ def seed_cards(conn, cards):
                     body = EXCLUDED.body,
                     impact = EXCLUDED.impact,
                     quiz = EXCLUDED.quiz,
-                    estimated_read_minutes = EXCLUDED.estimated_read_minutes,
-                    updated_at = NOW()
+                    estimated_read_minutes = EXCLUDED.estimated_read_minutes
                 RETURNING (xmax = 0) AS inserted
             """, {
                 'type': card['type'],
@@ -132,8 +131,7 @@ def seed_insights(conn, insights):
                     topic = EXCLUDED.topic,
                     summary = EXCLUDED.summary,
                     body = EXCLUDED.body,
-                    read_time_minutes = EXCLUDED.read_time_minutes,
-                    updated_at = NOW()
+                    read_time_minutes = EXCLUDED.read_time_minutes
                 RETURNING (xmax = 0) AS inserted
             """, {
                 'topic': insight['topic'],
@@ -228,40 +226,39 @@ def seed_gamification(conn, gamification_data):
             cursor.execute("""
                 INSERT INTO gamification (
                     user_id, 
-                    total_points, 
-                    current_streak,
+                    points, 
+                    streak_days,
                     last_activity_date,
                     badges
                 )
                 VALUES (
                     %(user_id)s, 
-                    %(total_points)s, 
-                    %(current_streak)s,
+                    %(points)s, 
+                    %(streak_days)s,
                     CURRENT_DATE,
                     %(badges)s
                 )
                 ON CONFLICT (user_id) 
                 DO UPDATE SET
-                    total_points = EXCLUDED.total_points,
-                    current_streak = EXCLUDED.current_streak,
+                    points = EXCLUDED.points,
+                    streak_days = EXCLUDED.streak_days,
                     last_activity_date = EXCLUDED.last_activity_date,
-                    badges = EXCLUDED.badges,
-                    updated_at = NOW()
+                    badges = EXCLUDED.badges
                 RETURNING (xmax = 0) AS inserted
             """, {
                 'user_id': gami['user_id'],
-                'total_points': gami['total_points'],
-                'current_streak': gami['current_streak'],
+                'points': gami['points'],
+                'streak_days': gami['streak_days'],
                 'badges': json.dumps(gami['badges'], ensure_ascii=False)
             })
             
             result = cursor.fetchone()
             if result and result[0]:
                 inserted += 1
-                print(f"  ✅ Inserted: {gami['user_id']} ({gami['total_points']} pts)")
+                print(f"  ✅ Inserted: {gami['user_id']} ({gami['points']} pts)")
             else:
                 updated += 1
-                print(f"  🔄 Updated: {gami['user_id']} ({gami['total_points']} pts)")
+                print(f"  🔄 Updated: {gami['user_id']} ({gami['points']} pts)")
                 
         except Exception as e:
             print(f"  ❌ Failed to insert gamification for '{gami['user_id']}': {e}")
@@ -320,6 +317,82 @@ def seed_family_links(conn, family_links):
     print(f"\n✅ Family Links: {inserted} inserted, {skipped} skipped")
     return inserted, skipped
 
+def seed_completed_cards(conn, completed_cards):
+    """completed_cards 테이블에 시드 데이터 삽입"""
+    cursor = conn.cursor()
+    inserted = 0
+    skipped = 0
+    
+    print(f"\n✅ Seeding {len(completed_cards)} completed cards...")
+    
+    for item in completed_cards:
+        try:
+            # Get card ID by title
+            cursor.execute("""
+                SELECT id FROM cards WHERE title = %(title)s LIMIT 1
+            """, {'title': item['card_title']})
+            
+            card_result = cursor.fetchone()
+            if not card_result:
+                print(f"  ⚠️  Card not found: {item['card_title']}")
+                skipped += 1
+                continue
+            
+            card_id = card_result[0]
+            
+            # Calculate completed_at (days_ago from today)
+            from datetime import timedelta
+            completed_at = datetime.now() - timedelta(days=item['days_ago'])
+            
+            # Check if already completed
+            cursor.execute("""
+                SELECT id FROM completed_cards 
+                WHERE user_id = %(user_id)s AND card_id = %(card_id)s
+                LIMIT 1
+            """, {'user_id': item['user_id'], 'card_id': card_id})
+            
+            existing = cursor.fetchone()
+            if existing:
+                skipped += 1
+                print(f"  ⏭️  Skipped (duplicate): {item['user_id']} - {item['card_title'][:30]}")
+                continue
+            
+            # Insert completed card
+            cursor.execute("""
+                INSERT INTO completed_cards (
+                    user_id, 
+                    card_id, 
+                    quiz_result,
+                    completed_at
+                )
+                VALUES (
+                    %(user_id)s, 
+                    %(card_id)s, 
+                    %(quiz_result)s,
+                    %(completed_at)s
+                )
+                RETURNING id
+            """, {
+                'user_id': item['user_id'],
+                'card_id': card_id,
+                'quiz_result': json.dumps(item['quiz_result']) if item['quiz_result'] else None,
+                'completed_at': completed_at
+            })
+            
+            result = cursor.fetchone()
+            if result:
+                inserted += 1
+                print(f"  ✅ Completed: {item['user_id']} - {item['card_title'][:30]}...")
+                
+        except Exception as e:
+            print(f"  ❌ Failed to insert completed card '{item['card_title']}': {e}")
+            conn.rollback()
+            raise
+    
+    conn.commit()
+    print(f"\n✅ Completed Cards: {inserted} inserted, {skipped} skipped")
+    return inserted, skipped
+
 def seed_qna_posts(conn, qna_posts):
     """qna_posts 테이블에 시드 데이터 삽입"""
     cursor = conn.cursor()
@@ -328,62 +401,61 @@ def seed_qna_posts(conn, qna_posts):
     
     print(f"\n💬 Seeding {len(qna_posts)} Q&A posts...")
     
-    # Demo user 생성 (없으면 생성) - 이미 profiles에서 생성됨
-    
     for post in qna_posts:
         try:
-            # author_nickname이 있으면 사용, 없으면 null
-            author_nickname = post.get('author_nickname')
+            # Use demo-user-50s as default author if not anonymous
+            author_id = None if post.get('is_anon', False) else 'demo-user-50s'
+            
+            # Check if similar post exists (by title substring)
+            cursor.execute("""
+                SELECT id FROM qna_posts 
+                WHERE title = %(title)s
+                LIMIT 1
+            """, {'title': post['title']})
+            
+            existing = cursor.fetchone()
+            if existing:
+                skipped += 1
+                print(f"  ⏭️  Skipped (duplicate): {post['title'][:40]}...")
+                continue
             
             cursor.execute("""
                 INSERT INTO qna_posts (
                     author_id, 
                     topic, 
-                    question, 
+                    title, 
                     body, 
                     is_anon, 
-                    author_nickname,
                     ai_summary,
-                    answer_count,
-                    vote_count,
                     created_at
                 )
                 VALUES (
-                    'demo-user-seed', 
+                    %(author_id)s, 
                     %(topic)s, 
-                    %(question)s, 
+                    %(title)s, 
                     %(body)s, 
                     %(is_anon)s,
-                    %(author_nickname)s,
                     %(ai_summary)s,
-                    %(answer_count)s,
-                    %(vote_count)s,
                     NOW()
                 )
-                ON CONFLICT (question) DO NOTHING
                 RETURNING id
             """, {
+                'author_id': author_id,
                 'topic': post['topic'],
-                'question': post['question'],
-                'body': post.get('body'),
-                'is_anon': post['is_anon'],
-                'author_nickname': author_nickname,
-                'ai_summary': post.get('ai_summary'),
-                'answer_count': post.get('answer_count', 0),
-                'vote_count': post.get('vote_count', 0)
+                'title': post['title'],
+                'body': post.get('body', ''),
+                'is_anon': post.get('is_anon', False),
+                'ai_summary': post.get('ai_summary')
             })
             
             result = cursor.fetchone()
             if result:
                 inserted += 1
-                anon_label = "(익명)" if post['is_anon'] else f"({author_nickname})"
-                print(f"  ✅ Inserted: {post['question'][:40]}... {anon_label}")
-            else:
-                skipped += 1
-                print(f"  ⏭️  Skipped (duplicate): {post['question'][:40]}...")
+                anon_label = "(익명)" if post.get('is_anon', False) else ""
+                print(f"  ✅ Inserted: {post['title'][:40]}... {anon_label}")
                 
         except Exception as e:
-            print(f"  ❌ Failed to insert Q&A '{post['question']}': {e}")
+            print(f"  ❌ Failed to insert Q&A '{post['title']}': {e}")
             conn.rollback()
             raise
     
@@ -415,6 +487,7 @@ def main():
         cards_inserted, cards_updated = seed_cards(conn, seed_data['cards'])
         insights_inserted, insights_updated = seed_insights(conn, seed_data['insights'])
         qna_inserted, qna_skipped = seed_qna_posts(conn, seed_data['qna_posts'])
+        completed_inserted, completed_skipped = seed_completed_cards(conn, seed_data.get('completed_cards', []))
         
         # Close connection
         conn.close()
@@ -429,6 +502,7 @@ def main():
         print(f"Cards:         {cards_inserted} inserted, {cards_updated} updated")
         print(f"Insights:      {insights_inserted} inserted, {insights_updated} updated")
         print(f"Q&A Posts:     {qna_inserted} inserted, {qna_skipped} skipped")
+        print(f"Completed:     {completed_inserted} inserted, {completed_skipped} skipped")
         print(f"Finished at:   {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         print("=" * 60)
         

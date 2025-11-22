@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
+import { Animated } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { A11yMode, getA11yTokens } from '@repo/ui';
 
@@ -14,6 +15,7 @@ interface A11yContextValue {
   spacing: number;
   buttonHeight: number;
   iconSize: number;
+  scaleAnim: Animated.Value; // 애니메이션 값
 }
 
 const A11yContext = createContext<A11yContextValue | undefined>(undefined);
@@ -23,6 +25,7 @@ const A11Y_MODE_KEY = '@a11y_mode';
 export const A11yProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [mode, setModeState] = useState<A11yMode>('normal');
   const tokens = getA11yTokens(mode);
+  const scaleAnim = useRef(new Animated.Value(1)).current;
 
   // 앱 시작 시 저장된 모드 불러오기
   useEffect(() => {
@@ -42,6 +45,20 @@ export const A11yProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const setMode = async (newMode: A11yMode) => {
     try {
+      // 애니메이션: 축소 → 확대
+      Animated.sequence([
+        Animated.timing(scaleAnim, {
+          toValue: 0.95,
+          duration: 150,
+          useNativeDriver: true,
+        }),
+        Animated.timing(scaleAnim, {
+          toValue: 1,
+          duration: 150,
+          useNativeDriver: true,
+        }),
+      ]).start();
+
       await AsyncStorage.setItem(A11Y_MODE_KEY, newMode);
       setModeState(newMode);
     } catch (error) {
@@ -58,6 +75,7 @@ export const A11yProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         spacing: tokens.spacing,
         buttonHeight: tokens.buttonHeight,
         iconSize: tokens.iconSize,
+        scaleAnim,
       }}
     >
       {children}

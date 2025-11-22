@@ -1,12 +1,19 @@
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field, field_validator
-from typing import List, Literal
+from typing import List, Literal, Optional
+from redis import Redis
+import logging
 
-from app.core.deps import get_current_user, get_supabase
+from app.core.deps import get_current_user, get_supabase, get_redis_client
 from app.services.scam_checker import ScamChecker
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 checker = ScamChecker()
+
+# 레이트 리미팅 설정
+RATE_LIMIT_WINDOW = 60  # 1분
+RATE_LIMIT_MAX_REQUESTS = 5  # 최대 5회
 
 
 class ScamCheckRequest(BaseModel):
@@ -34,14 +41,48 @@ async def check_scam(
     body: ScamCheckRequest,
     current_user: dict = Depends(get_current_user),
     supabase=Depends(get_supabase),
+    redis: Optional[Redis] = Depends(get_redis_client)
 ):
     """
     SMS/URL 사기 검사
 
     - 키워드 매칭으로 위험도 판정 (safe/warn/danger)
     - 구체적인 대응 팁 제공
+    - 레이트 리미팅: 1분당 5회
     - 선택적으로 scam_checks 테이블에 로그 기록
     """
+    user_id = current_user["id"]
+    
+    # 레이트 리미팅 체크
+    if redis:
+        try:
+            rate_limit_key = f"ratelimit:scam:{user_id}"
+            current_count = redis.get(rate_limit_key)
+            
+            if current_count and int(current_count) >= RATE_LIMIT_MAX_REQUESTS:
+                raise HTTPException(
+                    status_code=429,
+                    detail={
+                        "ok": False,
+                        "error": {
+                            "code": "RATE_LIMIT_EXCEEDED",
+                            "message": "사기 검사를 너무 자주 요청했어요. 1분 후 다시 시도해 주세요."
+                        }
+                    }
+                )
+            
+            # 카운트 증가
+            pipe = redis.pipeline()
+            pipe.incr(rate_limit_key)
+            pipe.expire(rate_limit_key, RATE_LIMIT_WINDOW)
+            pipe.execute()
+            
+            logger.info(f"레이트 리미팅: user={user_id}, count={int(current_count or 0) + 1}/{RATE_LIMIT_MAX_REQUESTS}")
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.warning(f"레이트 리미팅 체크 실패 (계속 진행): {e}")
+    
     try:
         # ScamChecker 서비스로 검사
         result = checker.check(body.input)

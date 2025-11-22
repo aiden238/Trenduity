@@ -7,6 +7,8 @@ export interface TypographyProps {
   mode?: A11yMode;
   children: React.ReactNode;
   style?: TextStyle;
+  accessibilityRole?: 'text' | 'header' | 'none';
+  accessibilityLabel?: string;
 }
 
 /**
@@ -19,9 +21,14 @@ export const Typography: React.FC<TypographyProps> = ({
   mode = 'normal',
   children,
   style,
+  accessibilityRole = 'text',
+  accessibilityLabel,
 }) => {
   const tokens = getA11yTokens(mode);
   const fontSize = tokens.fontSize[variant];
+
+  // heading variant일 때 기본 accessibilityRole을 'header'로
+  const role = variant === 'heading' && accessibilityRole === 'text' ? 'header' : accessibilityRole;
 
   return (
     <Text
@@ -32,6 +39,8 @@ export const Typography: React.FC<TypographyProps> = ({
         },
         style,
       ]}
+      accessibilityRole={role}
+      accessibilityLabel={accessibilityLabel}
     >
       {children}
     </Text>

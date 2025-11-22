@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, FlatList, Pressable, ScrollView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { Spinner, EmptyState, ErrorState } from '@repo/ui';
 import { useA11y } from '../../contexts/A11yContext';
 import { useQnaPosts } from '../../hooks/useQna';
 
@@ -39,6 +40,8 @@ export const QnaListScreen = () => {
                 onPress={() => setSelectedTopic(topic.key)}
                 accessibilityRole="button"
                 accessibilityLabel={`${topic.label} 주제 필터`}
+                accessibilityHint="버튼을 누르면 해당 주제의 질문만 표시됩니다"
+                accessibilityState={{ selected: selectedTopic === topic.key }}
               >
                 <Text
                   style={[
@@ -57,15 +60,15 @@ export const QnaListScreen = () => {
 
       {/* 질문 목록 */}
       {isLoading ? (
-        <View style={[styles.centered, { padding: spacing.lg }]}>
-          <Text style={{ fontSize: fontSizes.md, color: '#666' }}>불러오는 중...</Text>
-        </View>
+        <Spinner size="large" />
       ) : error ? (
-        <View style={[styles.centered, { padding: spacing.lg }]}>
-          <Text style={{ fontSize: fontSizes.md, color: '#F44336' }}>
-            목록을 불러올 수 없어요.
-          </Text>
-        </View>
+        <ErrorState message="목록을 불러올 수 없어요. 잠시 후 다시 시도해 주세요." />
+      ) : (data?.posts || []).length === 0 ? (
+        <EmptyState
+          icon="💭"
+          title="아직 질문이 없어요"
+          description="첫 질문을 남겨보세요!"
+        />
       ) : (
         <FlatList
           data={data?.posts || []}
@@ -80,6 +83,7 @@ export const QnaListScreen = () => {
               onPress={() => navigation.navigate('QnaDetail', { postId: item.id })}
               accessibilityRole="button"
               accessibilityLabel={`질문: ${item.title}`}
+              accessibilityHint="버튼을 누르면 질문 상세 내용과 답변을 볼 수 있습니다"
             >
               <Text style={[styles.postTitle, { fontSize: fontSizes.lg }]}>{item.title}</Text>
               <Text
@@ -134,6 +138,7 @@ export const QnaListScreen = () => {
           onPress={() => navigation.navigate('CreateQna')}
           accessibilityRole="button"
           accessibilityLabel="질문 작성하기"
+          accessibilityHint="버튼을 누르면 새 질문을 작성할 수 있는 화면으로 이동합니다"
         >
           <Text style={[styles.fabButtonText, { fontSize: fontSizes.md }]}>✏️ 질문하기</Text>
         </Pressable>

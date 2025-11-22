@@ -63,7 +63,10 @@ export const QuizSection = ({ quiz, answers, onAnswerChange, mode }: Props) => {
                       height: buttonHeight,
                       justifyContent: 'center'
                     }}
+                    accessibilityRole="button"
                     accessibilityLabel={`${qIndex + 1}번 문제 ${index + 1}번 선택지: ${option}`}
+                    accessibilityHint="버튼을 누르면 이 답을 선택합니다"
+                    accessibilityState={{ selected: isSelected }}
                   >
                     {option}
                   </Button>

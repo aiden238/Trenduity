@@ -3,12 +3,14 @@ import { TouchableOpacity, Text, ViewStyle, TextStyle } from 'react-native';
 import { A11yMode, getA11yTokens } from '../tokens/a11y';
 
 export interface ButtonProps {
-  variant?: 'primary' | 'secondary';
+  variant?: 'primary' | 'secondary' | 'outline';
   mode?: A11yMode;
   onPress: () => void;
   children: React.ReactNode;
   disabled?: boolean;
   style?: ViewStyle;
+  accessibilityLabel?: string;
+  accessibilityHint?: string;
 }
 
 /**
@@ -23,13 +25,17 @@ export const Button: React.FC<ButtonProps> = ({
   children,
   disabled = false,
   style,
+  accessibilityLabel,
+  accessibilityHint,
 }) => {
   const tokens = getA11yTokens(mode);
 
   const buttonStyle: ViewStyle = {
     minWidth: tokens.touchTarget.minWidth,
     minHeight: tokens.touchTarget.minHeight,
-    backgroundColor: variant === 'primary' ? '#007AFF' : '#F0F0F0',
+    backgroundColor: variant === 'primary' ? '#007AFF' : variant === 'outline' ? 'transparent' : '#F0F0F0',
+    borderWidth: variant === 'outline' ? 1 : 0,
+    borderColor: variant === 'outline' ? '#007AFF' : 'transparent',
     borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
@@ -50,8 +56,12 @@ export const Button: React.FC<ButtonProps> = ({
       onPress={onPress}
       disabled={disabled}
       activeOpacity={0.7}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel || (typeof children === 'string' ? children : undefined)}
+      accessibilityHint={accessibilityHint}
+      accessibilityState={{ disabled }}
     >
       <Text style={textStyle}>{children}</Text>
     </TouchableOpacity>
   );
-};
+}

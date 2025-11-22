@@ -3,9 +3,18 @@ from typing import Dict, Optional
 from datetime import datetime, timedelta
 from pydantic import BaseModel
 from supabase import Client
-from app.core.deps import get_supabase, get_current_user
+from redis import Redis
+from app.core.deps import get_supabase, get_current_user, get_redis_client
+from app.utils.error_translator import translate_db_error, is_db_error
+import json
+import logging
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
+
+# 캐시 TTL (초)
+CACHE_TTL_INSIGHTS_LIST = 300  # 5분
+CACHE_TTL_INSIGHTS_DETAIL = 600  # 10분
 
 
 @router.get("")
@@ -14,7 +23,8 @@ async def list_insights(
     range: str = Query("weekly", description="weekly | monthly"),
     limit: int = Query(20, le=50),
     offset: int = Query(0),
-    db: Client = Depends(get_supabase)
+    db: Client = Depends(get_supabase),
+    redis: Optional[Redis] = Depends(get_redis_client)
 ) -> Dict:
     """
     인사이트 목록 조회
@@ -34,16 +44,29 @@ async def list_insights(
           }
         }
     """
+    # Redis 캐시 키 생성
+    cache_key = f"insights:list:topic_{topic or 'all'}:range_{range}:limit_{limit}:offset_{offset}"
+    
     try:
-        # 1. 날짜 범위 계산
+        # 1. 캐시 조회
+        if redis:
+            try:
+                cached = redis.get(cache_key)
+                if cached:
+                    logger.info(f"캐시 히트: {cache_key}")
+                    return json.loads(cached)
+            except Exception as e:
+                logger.warning(f"캐시 조회 실패 (계속 진행): {e}")
+        
+        # 2. 날짜 범위 계산
         days = 7 if range == "weekly" else 30
         start_date = (datetime.now() - timedelta(days=days)).date()
         
-        # 2. 쿼리 빌드
+        # 3. 쿼리 빌드 (created_at 사용)
         query = db.table('insights') \
-            .select('id, date, topic, title, summary, source', count='exact') \
-            .gte('date', start_date.isoformat()) \
-            .order('date', desc=True) \
+            .select('id, created_at, topic, title, summary, read_time_minutes', count='exact') \
+            .gte('created_at', start_date.isoformat()) \
+            .order('created_at', desc=True) \
             .range(offset, offset + limit - 1)
         
         if topic:
@@ -51,21 +74,45 @@ async def list_insights(
         
         result = query.execute()
         
-        return {
+        response = {
             "ok": True,
             "data": {
                 "insights": result.data,
                 "total": result.count
             }
         }
+        
+        # 4. 캐시 저장
+        if redis:
+            try:
+                redis.setex(cache_key, CACHE_TTL_INSIGHTS_LIST, json.dumps(response))
+                logger.info(f"캐시 저장: {cache_key} (TTL: {CACHE_TTL_INSIGHTS_LIST}s)")
+            except Exception as e:
+                logger.warning(f"캐시 저장 실패 (계속 진행): {e}")
+        
+        return response
     except Exception as e:
+        logger.error(f"인사이트 목록 조회 실패: {e}")
+        
+        # DB 에러인 경우 한국어 번역 적용
+        if is_db_error(e):
+            error_info = translate_db_error(e)
+            raise HTTPException(
+                status_code=500,
+                detail={
+                    "ok": False,
+                    "error": error_info
+                }
+            )
+        
+        # 일반 에러
         raise HTTPException(
             status_code=500,
             detail={
                 "ok": False,
                 "error": {
-                    "code": "DB_ERROR",
-                    "message": "인사이트를 불러오는데 문제가 생겼어요."
+                    "code": "INSIGHTS_LIST_ERROR",
+                    "message": "인사이트를 불러오는데 문제가 생겼어요. 새로고침 해보세요."
                 }
             }
         )
@@ -74,7 +121,8 @@ async def list_insights(
 @router.get("/{insight_id}")
 async def get_insight_detail(
     insight_id: str,
-    db: Client = Depends(get_supabase)
+    db: Optional[Client] = Depends(get_supabase),
+    redis: Optional[Redis] = Depends(get_redis_client)
 ) -> Dict:
     """
     인사이트 상세 조회
@@ -95,7 +143,50 @@ async def get_insight_detail(
           }
         }
     """
+    cache_key = f"insights:detail:{insight_id}"
+    
     try:
+        # 1. 캐시 조회
+        if redis:
+            try:
+                cached = redis.get(cache_key)
+                if cached:
+                    logger.info(f"캐시 히트: {cache_key}")
+                    return json.loads(cached)
+            except Exception as e:
+                logger.warning(f"캐시 조회 실패 (계속 진행): {e}")
+        
+        # 로컬 개발 모드: Supabase 미설정 시 더미 데이터 반환
+        if not db:
+            logger.warning(f"Supabase 미설정 - 더미 데이터 반환: {insight_id}")
+            dummy_response = {
+                "ok": True,
+                "data": {
+                    "insight": {
+                        "id": insight_id,
+                        "title": "[테스트] AI 도구 활용 가이드",
+                        "summary": "최신 AI 도구를 시니어도 쉽게 사용할 수 있는 방법",
+                        "body": "ChatGPT, Copilot 등 AI 도구의 기본 사용법을 알아봅니다...",
+                        "impact": "디지털 격차 해소 및 생산성 향상",
+                        "source": "테크 리포트 2024",
+                        "references": ["https://example.com"],
+                        "topic": "ai_tools",
+                        "date": datetime.now().date().isoformat()
+                    }
+                }
+            }
+            
+            # 더미 데이터도 캐싱
+            if redis:
+                try:
+                    redis.setex(cache_key, CACHE_TTL_INSIGHTS_DETAIL, json.dumps(dummy_response))
+                    logger.info(f"더미 데이터 캐시 저장: {cache_key}")
+                except Exception as e:
+                    logger.warning(f"캐시 저장 실패: {e}")
+            
+            return dummy_response
+        
+        # 2. DB 조회
         result = db.table('insights') \
             .select('*') \
             .eq('id', insight_id) \
@@ -120,7 +211,7 @@ async def get_insight_detail(
         impact = payload.get('impact', '')
         references = payload.get('references', [])
         
-        return {
+        response = {
             "ok": True,
             "data": {
                 "insight": {
@@ -131,6 +222,16 @@ async def get_insight_detail(
                 }
             }
         }
+        
+        # 3. 캐시 저장
+        if redis:
+            try:
+                redis.setex(cache_key, CACHE_TTL_INSIGHTS_DETAIL, json.dumps(response))
+                logger.info(f"캐시 저장: {cache_key} (TTL: {CACHE_TTL_INSIGHTS_DETAIL}s)")
+            except Exception as e:
+                logger.warning(f"캐시 저장 실패 (계속 진행): {e}")
+        
+        return response
     except HTTPException:
         raise
     except Exception as e:

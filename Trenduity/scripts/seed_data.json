@@ -315,49 +315,66 @@
   ],
   "qna_posts": [
     {
-      "topic": "safety",
-      "question": "문자에 있는 링크 눌러도 되나요?",
+      "topic": "digital_safety",
+      "title": "문자에 있는 링크 눌러도 되나요?",
       "body": "택배 왔다고 문자가 왔는데, 링크를 눌러도 되는지 궁금합니다. 사기일까 봐 무서워요.",
       "is_anon": true,
-      "answer_count": 0,
-      "vote_count": 0,
       "ai_summary": "모르는 번호의 링크는 클릭하지 마세요. 진짜 택배 회사는 공식 앱이나 웹사이트를 사용합니다."
     },
     {
-      "topic": "mobile101",
-      "question": "미리캔버스에서 글씨 크기 바꾸는 법?",
-      "body": null,
+      "topic": "ai_tools",
+      "title": "미리캔버스에서 글씨 크기 바꾸는 법?",
+      "body": "미리캔버스로 초대장을 만들고 있는데요, 글씨 크기를 어떻게 바꾸는지 모르겠어요. 도와주세요!",
       "is_anon": false,
-      "author_nickname": "디지털배우는김씨",
-      "answer_count": 0,
-      "vote_count": 0
+      "ai_summary": "미리캔버스에서 텍스트를 선택한 후 상단 툴바에서 글씨 크기를 조절할 수 있어요."
     },
     {
-      "topic": "ai",
-      "question": "AI 음성 비서 추천해주세요",
-      "body": "아이폰 쓰는데, 시리 말고 다른 AI 비서도 있나요?",
+      "topic": "ai_tools",
+      "title": "AI 음성 비서 추천해주세요",
+      "body": "아이폰 쓰는데, 시리 말고 다른 AI 비서도 있나요? 더 똑똑한 비서가 있으면 알려주세요.",
       "is_anon": false,
-      "author_nickname": "호기심많은이씨",
-      "answer_count": 0,
-      "vote_count": 0
+      "ai_summary": "아이폰에서는 시리가 기본이지만, 구글 어시스턴트 앱을 설치해서 사용할 수도 있어요."
     },
     {
-      "topic": "mobile101",
-      "question": "가족과 사진 공유하는 쉬운 방법?",
-      "body": "손주 사진을 가족들에게 보내고 싶은데, 카카오톡 말고 다른 방법도 있나요?",
+      "topic": "general",
+      "title": "가족과 사진 공유하는 쉬운 방법?",
+      "body": "손주 사진을 가족들에게 보내고 싶은데, 카카오톡 말고 다른 방법도 있나요? 한 번에 여러 사진을 보내는 게 어려워요.",
       "is_anon": false,
-      "author_nickname": "사진많은박씨",
-      "answer_count": 0,
-      "vote_count": 0
+      "ai_summary": "구글 포토나 네이버 클라우드에 앨범을 만들어서 링크를 공유하면 편해요."
     },
     {
-      "topic": "ai",
-      "question": "포인트는 어떻게 쌓나요?",
-      "body": null,
+      "topic": "general",
+      "title": "포인트는 어떻게 쌓나요?",
+      "body": "앱을 쓰면서 포인트를 쌓고 싶은데, 어떻게 하면 포인트를 많이 모을 수 있나요?",
       "is_anon": true,
-      "answer_count": 0,
-      "vote_count": 0,
-      "ai_summary": "카드 읽기, 퀴즈 풀기, Q&A 참여 등으로 포인트를 쌓을 수 있어요."
+      "ai_summary": "카드 읽기(5점), 퀴즈 풀기(2점), 복약 체크(2점), 도구 실습(3점)으로 포인트를 쌓을 수 있어요."
+    }
+  ],
+  "reactions": [
+    {
+      "target_type": "qna_post",
+      "kind": "useful"
+    },
+    {
+      "target_type": "qna_post",
+      "kind": "cheer"
+    }
+  ],
+  "tools_progress": [
+    {
+      "tool": "canva",
+      "step": 1,
+      "status": "done"
+    },
+    {
+      "tool": "canva",
+      "step": 2,
+      "status": "in_progress"
+    },
+    {
+      "tool": "miri",
+      "step": 1,
+      "status": "done"
     }
   ],
   "profiles": [
@@ -400,20 +417,20 @@
   "gamification": [
     {
       "user_id": "demo-user-50s",
-      "total_points": 200,
-      "current_streak": 7,
+      "points": 200,
+      "streak_days": 7,
       "badges": ["first_card", "week_streak"]
     },
     {
       "user_id": "demo-user-60s",
-      "total_points": 120,
-      "current_streak": 3,
+      "points": 120,
+      "streak_days": 3,
       "badges": ["first_card"]
     },
     {
       "user_id": "demo-user-70s",
-      "total_points": 60,
-      "current_streak": 1,
+      "points": 60,
+      "streak_days": 1,
       "badges": []
     }
   ],
@@ -433,6 +450,41 @@
         "read": true,
         "alerts": true
       }
+    }
+  ],
+  "completed_cards": [
+    {
+      "user_id": "demo-user-50s",
+      "card_title": "AI란 무엇인가요?",
+      "quiz_result": {
+        "correct": 1,
+        "total": 1
+      },
+      "days_ago": 0
+    },
+    {
+      "user_id": "demo-user-50s",
+      "card_title": "스미싱 문자 구별하는 법",
+      "quiz_result": {
+        "correct": 2,
+        "total": 2
+      },
+      "days_ago": 1
+    },
+    {
+      "user_id": "demo-user-60s",
+      "card_title": "AI란 무엇인가요?",
+      "quiz_result": {
+        "correct": 1,
+        "total": 1
+      },
+      "days_ago": 0
+    },
+    {
+      "user_id": "demo-user-70s",
+      "card_title": "문자 크기 키우는 방법",
+      "quiz_result": null,
+      "days_ago": 0
     }
   ]
 }
