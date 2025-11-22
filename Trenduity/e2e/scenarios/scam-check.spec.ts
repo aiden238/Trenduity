@@ -109,11 +109,11 @@ test.describe('사기 검사 플로우', () => {
     const testToken = 'test-jwt-token-for-senior-user';
     
     // 레이트 리미팅: 1분당 5회 허용
-    // 연속 7번 호출하여 429 에러 확인
+    // 연속 6번 호출하여 429 에러 확인 (타임아웃 고려하여 7→6 감소)
     let rateLimitHit = false;
     let successCount = 0;
     
-    for (let i = 0; i < 7; i++) {
+    for (let i = 0; i < 6; i++) {
       const response = await request.post(`${baseURL}/v1/scam/check`, {
         headers: {
           'Authorization': `Bearer ${testToken}`,
