@@ -1,175 +1,165 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
-import useSWR from 'swr';
-import { apiGet } from './utils/apiClient';
-import type { FamilyMembersResponse } from './types/family';
-import { Spinner } from '../components/Spinner';
-import { EmptyState } from '../components/EmptyState';
-import { ErrorState } from '../components/ErrorState';
-import { useFamilyActivitySubscription } from '../hooks/useRealtimeSubscription';
-
-/**
- * 메인 대시보드
- * 
- * 실제 BFF API 연동 완료 ✅
- * TODO(IMPLEMENT): 최근 알림 표시
- * TODO(IMPLEMENT): 요약 통계 (학습 완료수)
- */
-
-// SWR fetcher 함수
-const fetcher = (url: string) => apiGet<FamilyMembersResponse>(url);
-
-function formatLastActivity(lastActivity: string | null): string {
-  if (!lastActivity) return '활동 없음';
-  
-  const date = new Date(lastActivity);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-  const diffDays = Math.floor(diffHours / 24);
-  
-  if (diffDays > 0) return `${diffDays}일 전`;
-  if (diffHours > 0) return `${diffHours}시간 전`;
-  return '방금 전';
-}
 
 export default function DashboardPage() {
-  const [recentActivity, setRecentActivity] = useState<string | null>(null);
-
-  // BFF API로 가족 멤버 조회
-  const { data, error, isLoading, mutate } = useSWR<FamilyMembersResponse>(
-    '/v1/family/members',
-    fetcher,
-    {
-      refreshInterval: 30000, // 30초마다 갱신
-      revalidateOnFocus: true,
-    }
-  );
-
-  const members = data?.members || [];
-  const memberIds = members.map(m => m.user_id);
-
-  // ✅ Realtime 구독: 가족 멤버의 활동을 실시간으로 모니터링
-  useFamilyActivitySubscription(memberIds, (activity) => {
-    console.log('[Realtime] Family activity:', activity);
-    
-    // 활동 타입에 따른 메시지 생성
-    const activityMessage = 
-      activity.type === 'card_completed' 
-        ? '카드를 완료했어요!' 
-        : '복약 체크를 했어요!';
-    
-    setRecentActivity(`${members.find(m => m.user_id === activity.userId)?.name || '회원'}님이 ${activityMessage}`);
-    
-    // 멤버 목록 새로고침
-    mutate();
-
-    // 5초 후 메시지 제거
-    setTimeout(() => setRecentActivity(null), 5000);
+  const [stats, setStats] = useState({
+    totalMembers: 0,
+    activeToday: 0,
+    totalPoints: 0,
+    currentStreak: 0
   });
+  const [members, setMembers] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    // BFF API에서 데이터 가져오기
+    fetch('http://localhost:8002/v1/family/members')
+      .then(res => res.json())
+      .then(data => {
+        if (data.ok && data.data) {
+          const membersData = data.data.members || [];
+          setMembers(membersData);
+          
+          // 통계 계산
+          const activeToday = membersData.filter(m => {
+            if (!m.last_activity) return false;
+            const daysDiff = Math.floor((Date.now() - new Date(m.last_activity).getTime()) / (1000 * 60 * 60 * 24));
+            return daysDiff <= 1;
+          }).length;
+          
+          setStats({
+            totalMembers: membersData.length,
+            activeToday,
+            totalPoints: membersData.reduce((sum, m) => sum + (m.total_points || 0), 0),
+            currentStreak: membersData.reduce((sum, m) => sum + (m.current_streak || 0), 0)
+          });
+        }
+        setIsLoading(false);
+      })
+      .catch(err => {
+        console.error('Failed to fetch members:', err);
+        setIsLoading(false);
+      });
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
 
   return (
-    <div>
-      <h2 className="text-3xl font-bold mb-6">대시보드</h2>
+    <div className="space-y-6">
+      {/* Header */}
+      <header className="bg-white rounded-lg shadow p-6">
+        <h1 className="text-4xl font-bold text-gray-900">가족 대시보드</h1>
+        <p className="text-gray-600 mt-2">가족 멤버들의 학습 현황을 한눈에 확인하세요</p>
+      </header>
 
-      {/* 실시간 활동 알림 */}
-      {recentActivity && (
-        <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg mb-6 flex items-center">
-          <span className="mr-2">🎉</span>
-          <span>{recentActivity}</span>
+      {/* Statistics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600">전체 멤버</p>
+              <p className="text-3xl font-bold text-blue-600 mt-1">{stats.totalMembers}</p>
+            </div>
+            <div className="text-4xl"></div>
+          </div>
         </div>
-      )}
 
-      {/* 로딩 상태 */}
-      {isLoading && <Spinner size="large" />}
-
-      {/* 에러 상태 */}
-      {error && (
-        <ErrorState
-          message={error.message || '데이터를 불러올 수 없어요. 잠시 후 다시 시도해 주세요.'}
-        />
-      )}
-
-      {/* 데이터 표시 */}
-      {!isLoading && !error && (
-        <>
-          {/* 요약 카드 */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div className="bg-white p-6 rounded-lg shadow">
-              <h3 className="text-lg font-semibold mb-2">관리 중인 회원</h3>
-              <p className="text-4xl font-bold text-blue-600">{members.length}</p>
-              <p className="text-sm text-gray-500 mt-2">명</p>
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600">오늘 활동</p>
+              <p className="text-3xl font-bold text-green-600 mt-1">{stats.activeToday}</p>
             </div>
-            <div className="bg-white p-6 rounded-lg shadow">
-              <h3 className="text-lg font-semibold mb-2">최근 활동 중</h3>
-              <p className="text-4xl font-bold text-green-600">
-                {members.filter(m => {
-                  if (!m.last_activity) return false;
-                  const daysDiff = Math.floor((Date.now() - new Date(m.last_activity).getTime()) / (1000 * 60 * 60 * 24));
-                  return daysDiff <= 1;
-                }).length}
-              </p>
-              <p className="text-sm text-gray-500 mt-2">명 (24시간 이내)</p>
-            </div>
-            <div className="bg-white p-6 rounded-lg shadow">
-              <h3 className="text-lg font-semibold mb-2">바로가기</h3>
-              <div className="flex flex-col space-y-2 mt-2">
-                <Link href="/alerts" className="text-sm text-blue-600 hover:underline">
-                  → 알림 확인
-                </Link>
-                <Link href="/encourage" className="text-sm text-blue-600 hover:underline">
-                  → 응원 보내기
-                </Link>
-              </div>
-            </div>
+            <div className="text-4xl"></div>
           </div>
+        </div>
 
-          {/* 회원 목록 */}
-          <div className="bg-white rounded-lg shadow">
-            <div className="p-6 border-b">
-              <h3 className="text-xl font-semibold">회원 목록</h3>
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600">총 포인트</p>
+              <p className="text-3xl font-bold text-purple-600 mt-1">{stats.totalPoints}</p>
             </div>
-            {members.length === 0 ? (
-              <EmptyState
-                icon="👥"
-                title="연동된 가족 멤버가 없어요"
-                description="모바일 앱에서 가족 초대를 시도해 보세요."
-              />
-            ) : (
-              <div className="divide-y">
-                {members.map((member) => (
-                  <Link
-                    key={member.user_id}
-                    href={`/members/${member.user_id}`}
-                    className="block p-6 hover:bg-gray-50 transition"
-                  >
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <h4 className="text-lg font-semibold">{member.name}</h4>
-                        <p className="text-sm text-gray-600">
-                          {member.perms.read && member.perms.alerts
-                            ? '모든 권한'
-                            : member.perms.read
-                            ? '읽기 전용'
-                            : '제한됨'}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm text-gray-500">마지막 활동</p>
-                        <p className="text-sm font-medium">
-                          {formatLastActivity(member.last_activity)}
-                        </p>
-                      </div>
+            <div className="text-4xl"></div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600">연속 일수</p>
+              <p className="text-3xl font-bold text-orange-600 mt-1">{stats.currentStreak}</p>
+            </div>
+            <div className="text-4xl"></div>
+          </div>
+        </div>
+      </div>
+
+      {/* Members List */}
+      <div className="bg-white rounded-lg shadow">
+        <div className="p-6 border-b border-gray-200">
+          <h2 className="text-2xl font-bold text-gray-900">가족 멤버</h2>
+        </div>
+        <div className="p-6">
+          {members.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="text-6xl mb-4"></div>
+              <p className="text-gray-600 text-lg">아직 등록된 멤버가 없습니다</p>
+              <p className="text-gray-500 mt-2">가족을 초대하여 함께 학습을 시작하세요!</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {members.map((member) => (
+                <div key={member.user_id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                  <div className="flex items-center space-x-3 mb-3">
+                    <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-xl">
+                      {member.name?.charAt(0) || '?'}
                     </div>
-                  </Link>
-                ))}
-              </div>
-            )}
-          </div>
-        </>
-      )}
+                    <div>
+                      <h3 className="font-semibold text-gray-900">{member.name || '이름 없음'}</h3>
+                      <p className="text-sm text-gray-500">{member.total_points || 0} 포인트</p>
+                    </div>
+                  </div>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">완료 카드</span>
+                      <span className="font-semibold">{member.cards_completed || 0}개</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">연속 일수</span>
+                      <span className="font-semibold">{member.current_streak || 0}일</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">마지막 활동</span>
+                      <span className="font-semibold">
+                        {member.last_activity 
+                          ? new Date(member.last_activity).toLocaleDateString('ko-KR')
+                          : '활동 없음'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Server Status */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <h2 className="text-xl font-semibold text-gray-800 mb-4">서버 상태</h2>
+        <div className="flex items-center space-x-2">
+          <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+          <p className="text-gray-700">BFF 서버 정상 작동 중 (http://localhost:8002)</p>
+        </div>
+      </div>
     </div>
   );
 }

@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
-import { Typography, Card, Button, Spinner, EmptyState, ErrorState } from '@repo/ui';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Typography, Card, Button, Spinner, EmptyState, ErrorState, GradientCard, COLORS, SPACING, SHADOWS, RADIUS } from '@repo/ui';
 import { useA11y } from '../../contexts/A11yContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import { useInsightList, useFollowingTopics } from '../../hooks/useInsights';
 import { useNavigation } from '@react-navigation/native';
 
@@ -26,7 +28,12 @@ export const InsightListScreen = () => {
   const { data: insights, isLoading, error } = useInsightList(selectedTopic, range);
   const { data: followingTopics } = useFollowingTopics();
   const { mode, spacing, fontSizes } = useA11y();
+  const { activeTheme, colors } = useTheme();
   const navigation = useNavigation();
+  
+  // 다크 모드 색상
+  const bgColor = activeTheme === 'dark' ? colors.dark.background.primary : colors.neutral.background;
+  const cardBg = activeTheme === 'dark' ? colors.dark.background.secondary : colors.neutral.surface;
   
   const handleInsightPress = (insightId: string) => {
     navigation.navigate('InsightDetail' as never, { insightId } as never);
@@ -47,9 +54,40 @@ export const InsightListScreen = () => {
   }
   
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: bgColor }]}>
+      {/* 그라디언트 헤더 */}
+      <LinearGradient
+        colors={COLORS.gradients.primary}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={{ paddingTop: spacing * 2, paddingBottom: spacing * 3 }}
+      >
+        <View style={{ paddingHorizontal: spacing * 2 }}>
+          <Typography
+            variant="heading1"
+            style={{
+              fontSize: fontSizes.heading1,
+              color: '#FFFFFF',
+              fontWeight: '700',
+            }}
+          >
+            💡 인사이트
+          </Typography>
+          <Typography
+            variant="body"
+            style={{
+              fontSize: fontSizes.body,
+              color: 'rgba(255, 255, 255, 0.9)',
+              marginTop: spacing / 2,
+            }}
+          >
+            최신 디지털 정보를 확인하세요
+          </Typography>
+        </View>
+      </LinearGradient>
+
       {/* 주제 필터 */}
-      <View style={[styles.topicFilter, { paddingVertical: spacing }]}>
+      <View style={[styles.topicFilter, { paddingVertical: spacing, marginTop: -spacing * 2 }]}>
         <FlatList
           horizontal
           data={TOPICS}
@@ -62,25 +100,47 @@ export const InsightListScreen = () => {
               <TouchableOpacity
                 onPress={() => setSelectedTopic(item.key)}
                 style={[
-                  styles.topicChip,
-                  { marginHorizontal: spacing / 2 },
-                  isSelected && styles.topicChipSelected
+                  { marginHorizontal: spacing / 2, borderRadius: RADIUS.full, overflow: 'hidden' },
+                  !isSelected && SHADOWS.sm
                 ]}
                 accessibilityRole="button"
                 accessibilityLabel={`${item.label} 주제 필터`}
                 accessibilityHint="버튼을 누르면 해당 주제의 인사이트만 표시됩니다"
                 accessibilityState={{ selected: isSelected }}
               >
-                <Typography
-                  variant="body"
-                  mode={mode}
-                  style={{
-                    fontSize: fontSizes.body,
-                    color: isSelected ? '#FFFFFF' : '#666666'
-                  }}
-                >
-                  {item.icon} {item.label}
-                </Typography>
+                {isSelected ? (
+                  <LinearGradient
+                    colors={COLORS.gradients.primary}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={[styles.topicChip]}
+                  >
+                    <Typography
+                      variant="body"
+                      mode={mode}
+                      style={{
+                        fontSize: fontSizes.body,
+                        color: '#FFFFFF',
+                        fontWeight: '600'
+                      }}
+                    >
+                      {item.icon} {item.label}
+                    </Typography>
+                  </LinearGradient>
+                ) : (
+                  <View style={[styles.topicChip, { backgroundColor: COLORS.neutral.surface }]}>
+                    <Typography
+                      variant="body"
+                      mode={mode}
+                      style={{
+                        fontSize: fontSizes.body,
+                        color: COLORS.neutral.text.secondary
+                      }}
+                    >
+                      {item.icon} {item.label}
+                    </Typography>
+                  </View>
+                )}
               </TouchableOpacity>
             );
           }}
@@ -129,61 +189,73 @@ export const InsightListScreen = () => {
               accessibilityLabel={`인사이트: ${item.title}`}
               accessibilityHint="버튼을 누르면 인사이트 전체 내용을 볼 수 있습니다"
             >
-              <Card mode={mode} style={{ marginBottom: spacing }}>
-                {/* 주제 태그 */}
-                <View style={styles.topicTag}>
-                  <Typography
-                    variant="caption"
-                    mode={mode}
-                    style={{ fontSize: fontSizes.caption, color: '#666666' }}
-                  >
-                    {topicInfo?.icon} {topicInfo?.label || item.topic}
-                  </Typography>
-                </View>
-                
-                {/* 제목 */}
-                <Typography
-                  variant="heading"
-                  mode={mode}
-                  style={{ fontSize: fontSizes.heading2, marginTop: spacing / 2 }}
-                >
-                  {item.title}
-                </Typography>
-                
-                {/* 요약 */}
-                <Typography
-                  variant="body"
-                  mode={mode}
-                  style={{
-                    fontSize: fontSizes.body,
-                    color: '#666666',
-                    marginTop: spacing / 2
-                  }}
-                  numberOfLines={2}
-                >
-                  {item.summary}
-                </Typography>
-                
-                {/* 날짜 & 출처 */}
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: spacing }}>
-                  <Typography
-                    variant="caption"
-                    mode={mode}
-                    style={{ fontSize: fontSizes.caption, color: '#999999' }}
-                  >
-                    {item.date}
-                  </Typography>
-                  {item.source && (
+              <GradientCard
+                colors={[cardBg, bgColor]}
+                size="medium"
+                shadow="md"
+                radius="lg"
+              >
+                <View style={{ padding: spacing }}>
+                  {/* 주제 태그 */}
+                  <View style={[styles.topicTag, { backgroundColor: COLORS.primary.light + '20' }]}>
                     <Typography
                       variant="caption"
                       mode={mode}
-                      style={{ fontSize: fontSizes.caption, color: '#999999' }}
+                      style={{ fontSize: fontSizes.caption, color: COLORS.primary.main, fontWeight: '600' }}
                     >
-                      출처: {item.source}
+                      {topicInfo?.icon} {topicInfo?.label || item.topic}
                     </Typography>
-                  )}
+                  </View>
+                
+                  {/* 제목 */}
+                  <Typography
+                    variant="heading"
+                    mode={mode}
+                    style={{ 
+                      fontSize: fontSizes.heading2, 
+                      marginTop: spacing / 2,
+                      color: COLORS.neutral.text.primary,
+                      fontWeight: '600'
+                    }}
+                  >
+                    {item.title}
+                  </Typography>
+                
+                  {/* 요약 */}
+                  <Typography
+                    variant="body"
+                    mode={mode}
+                    style={{
+                      fontSize: fontSizes.body,
+                      color: COLORS.neutral.text.secondary,
+                      marginTop: spacing / 2
+                    }}
+                    numberOfLines={2}
+                  >
+                    {item.summary}
+                  </Typography>
+                
+                  {/* 날짜 & 출처 */}
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: spacing }}>
+                    <Typography
+                      variant="caption"
+                      mode={mode}
+                      style={{ fontSize: fontSizes.caption, color: COLORS.neutral.text.tertiary }}
+                    >
+                      {item.date}
+                    </Typography>
+                    {item.source && (
+                      <Typography
+                        variant="caption"
+                        mode={mode}
+                        style={{ fontSize: fontSizes.caption, color: COLORS.neutral.text.tertiary }}
+                      >
+                        출처: {item.source}
+                      </Typography>
+                    )}
+                  </View>
                 </View>
-              </Card>
+              </GradientCard>
             </TouchableOpacity>
           );
         }}
@@ -202,7 +274,7 @@ export const InsightListScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.neutral.background,
   },
   centered: {
     justifyContent: 'center',
@@ -210,28 +282,22 @@ const styles = StyleSheet.create({
     padding: 32,
   },
   topicFilter: {
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+    backgroundColor: COLORS.neutral.surface,
+    ...SHADOWS.sm,
   },
   topicChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#F5F5F5',
-  },
-  topicChipSelected: {
-    backgroundColor: '#2196F3',
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.sm,
   },
   rangeFilter: {
     flexDirection: 'row',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+    backgroundColor: COLORS.neutral.surface,
+    ...SHADOWS.sm,
   },
   topicTag: {
     alignSelf: 'flex-start',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    backgroundColor: '#F0F8FF',
-    borderRadius: 4,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: SPACING.xs,
+    borderRadius: RADIUS.sm,
   },
 });

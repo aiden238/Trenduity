@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import useSWR from 'swr';
 import { apiGet } from '../utils/apiClient';
+import { ListSkeleton } from '../../components/Skeleton';
 
 /**
  * 회원 목록 페이지
@@ -37,11 +38,12 @@ export default function MembersPage() {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center min-h-[400px]">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
-          <p className="text-gray-600">회원 목록을 불러오는 중...</p>
+      <div className="max-w-4xl mx-auto">
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold text-gray-900 dark:text-slate-100 mb-2">가족 멤버</h1>
+          <p className="text-gray-600 dark:text-slate-400">등록된 가족 구성원을 관리하세요</p>
         </div>
+        <ListSkeleton items={5} avatar={true} />
       </div>
     );
   }

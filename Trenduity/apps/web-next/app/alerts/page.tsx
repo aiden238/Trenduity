@@ -118,46 +118,51 @@ export default function AlertsPage() {
   if (loading) {
     return (
       <div className="p-8">
-        <h2 className="text-3xl font-bold mb-6">알림</h2>
-        <p className="text-gray-500">로딩 중...</p>
+        <h2 className="text-3xl font-bold mb-6 text-gray-900 dark:text-slate-100">알림</h2>
+        <p className="text-gray-500 dark:text-slate-400">로딩 중...</p>
       </div>
     );
   }
 
   return (
-    <div className="p-8">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h2 className="text-3xl font-bold">알림</h2>
-          {unreadCount > 0 && (
-            <p className="text-sm text-gray-500 mt-1">
-              읽지 않은 알림 {unreadCount}개
-            </p>
-          )}
-        </div>
+    <div className="max-w-5xl mx-auto">
+      {/* 헤더 (그라디언트) */}
+      <div className="bg-gradient-to-br from-purple-500 to-indigo-600 dark:from-purple-800 dark:to-indigo-900 rounded-2xl shadow-xl p-8 mb-8 text-white dark:text-slate-100">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-4xl font-bold mb-2">🔔 알림</h1>
+            {unreadCount > 0 ? (
+              <p className="text-purple-100">
+                읽지 않은 알림 <span className="font-bold text-2xl">{unreadCount}</span>개
+              </p>
+            ) : (
+              <p className="text-purple-100">모든 알림을 확인했어요!</p>
+            )}
+          </div>
 
-        {/* 필터 버튼 */}
-        <div className="flex gap-2">
-          <button
-            onClick={() => setFilter('all')}
-            className={`px-4 py-2 rounded-lg ${
-              filter === 'all'
-                ? 'bg-blue-500 text-white'
-                : 'bg-gray-200 text-gray-700'
-            }`}
-          >
-            전체
-          </button>
-          <button
-            onClick={() => setFilter('unread')}
-            className={`px-4 py-2 rounded-lg ${
-              filter === 'unread'
-                ? 'bg-blue-500 text-white'
-                : 'bg-gray-200 text-gray-700'
-            }`}
-          >
-            안 읽음
-          </button>
+          {/* 필터 버튼 */}
+          <div className="flex gap-2">
+            <button
+              onClick={() => setFilter('all')}
+              className={`px-5 py-2.5 rounded-xl font-medium transition-all ${
+                filter === 'all'
+                  ? 'bg-white dark:bg-slate-700 text-purple-600 dark:text-purple-300 shadow-lg'
+                  : 'bg-white/20 dark:bg-white/10 text-white hover:bg-white/30 dark:hover:bg-white/20'
+              }`}
+            >
+              전체
+            </button>
+            <button
+              onClick={() => setFilter('unread')}
+              className={`px-5 py-2.5 rounded-xl font-medium transition-all ${
+                filter === 'unread'
+                  ? 'bg-white text-purple-600 shadow-lg'
+                  : 'bg-white/20 text-white hover:bg-white/30'
+              }`}
+            >
+              안 읽음
+            </button>
+          </div>
         </div>
       </div>
 
@@ -168,43 +173,51 @@ export default function AlertsPage() {
       )}
 
       {alerts.length === 0 ? (
-        <div className="bg-white rounded-lg shadow p-12 text-center">
-          <p className="text-gray-500">
+        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-md p-12 text-center border border-gray-100 dark:border-slate-700">
+          <div className="text-6xl mb-4">🔔</div>
+          <p className="text-gray-500 dark:text-slate-400 text-lg">
             {filter === 'unread' ? '읽지 않은 알림이 없습니다' : '알림이 없습니다'}
           </p>
         </div>
       ) : (
-        <div className="bg-white rounded-lg shadow divide-y">
+        <div className="space-y-4">
           {alerts.map((alert) => (
             <div
               key={alert.id}
-              className={`p-6 ${!alert.is_read ? 'bg-blue-50' : ''}`}
+              className={`bg-white dark:bg-slate-800 rounded-xl shadow-md hover:shadow-lg transition-all duration-200 overflow-hidden border border-gray-100 dark:border-slate-700 ${
+                !alert.is_read ? 'border-l-4 border-blue-500 dark:border-blue-400' : ''
+              }`}
             >
-              <div className="flex justify-between items-start">
-                <div className="flex gap-3 flex-1">
-                  <span className="text-2xl">{getAlertIcon(alert.type)}</span>
-                  <div className="flex-1">
-                    <p className="font-semibold">{alert.message}</p>
-                    <p className="text-sm text-gray-500 mt-1">
-                      {formatTimestamp(alert.timestamp)}
-                    </p>
+              <div className="p-6">
+                <div className="flex justify-between items-start">
+                  <div className="flex gap-4 flex-1">
+                    <div className="text-3xl bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30 w-14 h-14 rounded-full flex items-center justify-center flex-shrink-0">
+                      {getAlertIcon(alert.type)}
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-semibold text-gray-800 dark:text-slate-100 text-lg">{alert.message}</p>
+                      <p className="text-sm text-gray-500 dark:text-slate-400 mt-2 flex items-center gap-2">
+                        <span>🕒</span>
+                        <span>{formatTimestamp(alert.timestamp)}</span>
+                      </p>
+                    </div>
                   </div>
-                </div>
 
-                <div className="flex gap-2 items-center">
-                  {!alert.is_read && (
-                    <>
-                      <span className="bg-blue-500 text-white text-xs px-2 py-1 rounded">
-                        새로운
-                      </span>
-                      <button
-                        onClick={() => markAsRead([alert.id])}
-                        className="text-sm text-blue-600 hover:underline"
-                      >
-                        읽음 처리
-                      </button>
-                    </>
-                  )}
+                  <div className="flex gap-2 items-center">
+                    {!alert.is_read && (
+                      <>
+                        <span className="bg-gradient-to-r from-blue-500 to-blue-600 text-white text-xs px-3 py-1.5 rounded-full font-medium">
+                          새로운 ✨
+                        </span>
+                        <button
+                          onClick={() => markAsRead([alert.id])}
+                          className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium hover:underline"
+                        >
+                          읽음 처리
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -214,7 +227,7 @@ export default function AlertsPage() {
 
       {/* 모두 읽음 처리 버튼 */}
       {unreadCount > 0 && (
-        <div className="mt-4 text-center">
+        <div className="mt-6 text-center">
           <button
             onClick={() => {
               const unreadIds = alerts
@@ -224,9 +237,9 @@ export default function AlertsPage() {
                 markAsRead(unreadIds);
               }
             }}
-            className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+            className="px-8 py-3 bg-gradient-to-r from-gray-600 to-gray-700 dark:from-gray-700 dark:to-gray-800 text-white dark:text-slate-100 rounded-xl font-semibold hover:from-gray-700 hover:to-gray-800 dark:hover:from-gray-800 dark:hover:to-gray-900 shadow-lg hover:shadow-xl transition-all duration-200"
           >
-            모두 읽음 처리
+            ✅ 모두 읽음 처리
           </button>
         </div>
       )}

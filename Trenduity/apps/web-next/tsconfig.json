@@ -21,10 +21,14 @@
     "paths": {
       "@/src/*": ["./src/*"],
       "@/components/*": ["./components/*"],
+      "@/utils/*": ["./utils/*"],
+      "@/hooks/*": ["./hooks/*"],
       "@/*": [
         "./src/*",
         "./app/*",
-        "./components/*"
+        "./components/*",
+        "./utils/*",
+        "./hooks/*"
       ],
       "@repo/ui": [
         "../../packages/ui/src"

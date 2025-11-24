@@ -27,10 +27,108 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="Senior Learning App BFF",
-    description="Backend for Frontend - 50-70대 AI 학습 앱",
-    version="0.1.0",
-    lifespan=lifespan,  # 라이프사이클 핸들러 등록
+    title="🎓 Trenduity BFF API",
+    description="""
+    ## 50-70대 시니어를 위한 디지털 리터러시 학습 플랫폼
+    
+    ### 🎯 주요 기능
+    - **카드 학습**: 3분 학습 카드 + 퀴즈
+    - **게임화**: 포인트, 배지, 레벨, 스트릭 시스템
+    - **가족 연동**: 멤버 관리, 알림, 격려 메시지
+    - **복약 체크**: 일정 관리 및 알림
+    - **사기 검사**: AI 기반 위험도 판단
+    - **3단계 접근성**: Normal/Easy/Ultra 모드 (WCAG 2.1 AA)
+    
+    ### 🔐 인증 방법
+    ```bash
+    # 모든 API 요청에 Bearer 토큰 필요
+    Authorization: Bearer <JWT_TOKEN>
+    
+    # 테스트용 토큰 (개발 환경)
+    test-jwt-token-for-senior-user  # 시니어 사용자 (demo-user-50s)
+    test-jwt-token-for-guardian     # 보호자 (demo-guardian-50s)
+    ```
+    
+    ### 📊 응답 형식 (Envelope Pattern)
+    ```json
+    // 성공
+    {
+      "ok": true,
+      "data": { ... }
+    }
+    
+    // 실패
+    {
+      "ok": false,
+      "error": {
+        "code": "ERROR_CODE",
+        "message": "사용자 친화적인 한국어 메시지"
+      }
+    }
+    ```
+    
+    ### 🏗️ 아키텍처
+    - **모바일**: Expo React Native (TypeScript)
+    - **웹**: Next.js 14 App Router
+    - **BFF**: FastAPI (Python 3.11) ← 현재 문서
+    - **DB**: Supabase (PostgreSQL + RLS)
+    - **Cache**: Redis (레이트 리미팅, 캐싱)
+    
+    ### 📖 추가 문서
+    - [GitHub Repository](https://github.com/aiden238/Trenduity)
+    - [아키텍처 가이드](docs/PLAN/01-2-architecture-overview.md)
+    - [구현 규칙](docs/IMPLEMENT/01-implementation-rules.md)
+    """,
+    version="1.0.0",
+    lifespan=lifespan,
+    docs_url="/docs",
+    redoc_url="/redoc",
+    openapi_tags=[
+        {
+            "name": "cards",
+            "description": "📚 **학습 카드** - 오늘의 카드 조회, 완료, 퀴즈 제출"
+        },
+        {
+            "name": "gamification",
+            "description": "🎮 **게임화** - 포인트, 배지, 레벨, 스트릭 조회"
+        },
+        {
+            "name": "family",
+            "description": "👨‍👩‍👧‍👦 **가족 연동** - 멤버 관리, 활동 조회, 격려 메시지"
+        },
+        {
+            "name": "med",
+            "description": "💊 **복약 체크** - 복약 기록, 히스토리, 스트릭"
+        },
+        {
+            "name": "scam",
+            "description": "🛡️ **사기 검사** - 문자/링크 위험도 판단"
+        },
+        {
+            "name": "insights",
+            "description": "📊 **인사이트** - 주간/월간 학습 통계"
+        },
+        {
+            "name": "community",
+            "description": "💬 **커뮤니티** - Q&A, 좋아요, 댓글"
+        },
+        {
+            "name": "voice",
+            "description": "🎤 **음성** - 음성 명령 파싱 (TTS 준비)"
+        },
+        {
+            "name": "alerts",
+            "description": "🔔 **알림** - 알림 조회, 읽음 처리"
+        },
+        {
+            "name": "dashboard",
+            "description": "📈 **대시보드** - 통합 통계 (웹 전용)"
+        },
+        {
+            "name": "usage",
+            "description": "📱 **사용 통계** - 활동 추적"
+        },
+    ],
 )
 
 # 성능 모니터링 미들웨어 (먼저 등록 - 전체 요청 시간 측정)

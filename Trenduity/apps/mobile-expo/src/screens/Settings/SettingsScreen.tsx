@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, Text, Pressable, ScrollView, Animated } from 'react-native';
 import { useA11y } from '../../contexts/A11yContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import { ScamCheckSheet } from '../../components/ScamCheckSheet';
 
 const A11Y_MODES = [
@@ -21,27 +22,132 @@ const A11Y_MODES = [
   },
 ];
 
+const THEME_MODES = [
+  {
+    key: 'system' as const,
+    label: '시스템 설정',
+    description: '기기 설정을 따라요.',
+    icon: '⚙️',
+  },
+  {
+    key: 'light' as const,
+    label: '라이트 모드',
+    description: '밝은 화면으로 표시해요.',
+    icon: '☀️',
+  },
+  {
+    key: 'dark' as const,
+    label: '다크 모드',
+    description: '어두운 화면으로 표시해요.',
+    icon: '🌙',
+  },
+];
+
 /**
  * 설정 화면
  * 
- * 접근성 모드 선택 UI 제공
+ * 접근성 모드 선택 및 테마 선택 UI 제공
  */
 export const SettingsScreen = () => {
   const { mode, setMode, spacing, buttonHeight, fontSizes, scaleAnim } = useA11y();
+  const { themeMode, activeTheme, setThemeMode, colors } = useTheme();
   const [showScamCheck, setShowScamCheck] = useState(false);
 
+  // 다크 모드에 따른 색상 적용
+  const bgColor = activeTheme === 'dark' ? colors.dark.background.primary : '#FFFFFF';
+  const textPrimary = activeTheme === 'dark' ? colors.dark.text.primary : '#212121';
+  const textSecondary = activeTheme === 'dark' ? colors.dark.text.secondary : '#666666';
+  const cardBg = activeTheme === 'dark' ? colors.dark.background.secondary : '#F5F5F5';
+  const selectedCardBg = activeTheme === 'dark' ? colors.dark.background.tertiary : '#E3F2FD';
+  const borderColor = activeTheme === 'dark' ? colors.dark.border : 'transparent';
+  const accentColor = activeTheme === 'dark' ? colors.dark.status.info : '#2196F3';
+
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={[styles.container, { backgroundColor: bgColor }]}>
       <View style={{ padding: spacing }}>
         <Text
           style={{
             fontSize: fontSizes.heading1,
             fontWeight: '700',
-            color: '#212121',
+            color: textPrimary,
           }}
         >
           ⚙️ 설정
         </Text>
+
+        {/* 테마 모드 선택 */}
+        <View style={{ marginTop: spacing * 2 }}>
+          <Text
+            style={{
+              fontSize: fontSizes.heading2,
+              fontWeight: '600',
+              color: textPrimary,
+            }}
+          >
+            테마 설정
+          </Text>
+
+          <Text
+            style={{
+              fontSize: fontSizes.body,
+              color: textSecondary,
+              marginTop: spacing,
+            }}
+          >
+            밝은 화면과 어두운 화면을 선택할 수 있어요.
+          </Text>
+
+          {THEME_MODES.map((themeModeOption) => (
+            <View
+              key={themeModeOption.key}
+              style={[
+                styles.modeCard,
+                {
+                  marginTop: spacing,
+                  padding: spacing,
+                  borderRadius: 8,
+                  backgroundColor: cardBg,
+                  borderColor: borderColor,
+                },
+                themeMode === themeModeOption.key && {
+                  borderColor: accentColor,
+                  backgroundColor: selectedCardBg,
+                },
+              ]}
+            >
+              <Pressable
+                onPress={() => setThemeMode(themeModeOption.key)}
+                style={{
+                  height: buttonHeight,
+                  justifyContent: 'center',
+                }}
+                accessibilityRole="button"
+                accessibilityLabel={`${themeModeOption.label} 선택`}
+                accessibilityHint={`버튼을 누르면 ${themeModeOption.description}`}
+                accessibilityState={{ selected: themeMode === themeModeOption.key }}
+              >
+                <Text
+                  style={{
+                    fontSize: fontSizes.heading2,
+                    fontWeight: '600',
+                    color: themeMode === themeModeOption.key ? accentColor : textPrimary,
+                  }}
+                >
+                  {themeModeOption.icon} {themeModeOption.label}
+                </Text>
+                <Text
+                  style={{
+                    fontSize: fontSizes.body,
+                    color: textSecondary,
+                    marginTop: 4,
+                  }}
+                >
+                  {themeModeOption.description}
+                </Text>
+              </Pressable>
+            </View>
+          ))}
+        </View>
 
         {/* 접근성 모드 선택 */}
         <View style={{ marginTop: spacing * 2 }}>
@@ -49,7 +155,7 @@ export const SettingsScreen = () => {
             style={{
               fontSize: fontSizes.heading2,
               fontWeight: '600',
-              color: '#212121',
+              color: textPrimary,
             }}
           >
             화면 크기 조정
@@ -58,7 +164,7 @@ export const SettingsScreen = () => {
           <Text
             style={{
               fontSize: fontSizes.body,
-              color: '#666666',
+              color: textSecondary,
               marginTop: spacing,
             }}
           >
@@ -74,8 +180,13 @@ export const SettingsScreen = () => {
                   marginTop: spacing,
                   padding: spacing,
                   borderRadius: 8,
+                  backgroundColor: cardBg,
+                  borderColor: borderColor,
                 },
-                mode === modeOption.key && styles.selectedCard,
+                mode === modeOption.key && {
+                  borderColor: accentColor,
+                  backgroundColor: selectedCardBg,
+                },
               ]}
             >
               <Pressable
@@ -93,7 +204,7 @@ export const SettingsScreen = () => {
                   style={{
                     fontSize: fontSizes.heading2,
                     fontWeight: '600',
-                    color: mode === modeOption.key ? '#2196F3' : '#212121',
+                    color: mode === modeOption.key ? accentColor : textPrimary,
                   }}
                 >
                   {modeOption.label}
@@ -101,7 +212,7 @@ export const SettingsScreen = () => {
                 <Text
                   style={{
                     fontSize: fontSizes.body,
-                    color: '#666666',
+                    color: textSecondary,
                     marginTop: 4,
                   }}
                 >
@@ -117,7 +228,7 @@ export const SettingsScreen = () => {
           style={{
             marginTop: spacing * 2,
             padding: spacing,
-            backgroundColor: '#F0F8FF',
+            backgroundColor: activeTheme === 'dark' ? colors.dark.background.tertiary : '#F0F8FF',
             borderRadius: 8,
             transform: [{ scale: scaleAnim }],
           }}
@@ -126,25 +237,25 @@ export const SettingsScreen = () => {
             style={{
               fontSize: fontSizes.heading2,
               fontWeight: '600',
-              color: '#2196F3',
+              color: accentColor,
               marginBottom: spacing / 2,
             }}
           >
             ✨ 실시간 미리보기
           </Text>
-          <Text style={{ fontSize: fontSizes.body, color: '#212121' }}>
+          <Text style={{ fontSize: fontSizes.body, color: textPrimary }}>
             제목 크기: {fontSizes.heading1}dp
           </Text>
-          <Text style={{ fontSize: fontSizes.body, color: '#212121' }}>
+          <Text style={{ fontSize: fontSizes.body, color: textPrimary }}>
             본문 크기: {fontSizes.body}dp
           </Text>
-          <Text style={{ fontSize: fontSizes.body, color: '#212121' }}>
+          <Text style={{ fontSize: fontSizes.body, color: textPrimary }}>
             버튼 높이: {buttonHeight}dp
           </Text>
           <Text
             style={{
               fontSize: fontSizes.caption,
-              color: '#666666',
+              color: textSecondary,
               marginTop: spacing / 2,
             }}
           >
@@ -157,14 +268,14 @@ export const SettingsScreen = () => {
           style={{
             marginTop: spacing * 2,
             padding: spacing,
-            backgroundColor: '#FFF4E6',
+            backgroundColor: activeTheme === 'dark' ? colors.dark.background.tertiary : '#FFF4E6',
             borderRadius: 8,
           }}
         >
           <Text
             style={{
               fontSize: fontSizes.body,
-              color: '#212121',
+              color: textPrimary,
             }}
           >
             ✋ 터치 영역: 모든 버튼은 최소 {buttonHeight}dp 크기예요.
@@ -172,7 +283,7 @@ export const SettingsScreen = () => {
           <Text
             style={{
               fontSize: fontSizes.caption,
-              color: '#666666',
+              color: textSecondary,
               marginTop: 4,
             }}
           >
@@ -186,7 +297,7 @@ export const SettingsScreen = () => {
             style={{
               fontSize: fontSizes.heading2,
               fontWeight: '600',
-              color: '#212121',
+              color: textPrimary,
             }}
           >
             가족 기능
@@ -200,7 +311,7 @@ export const SettingsScreen = () => {
             style={{
               marginTop: spacing,
               height: buttonHeight,
-              backgroundColor: '#4CAF50',
+              backgroundColor: activeTheme === 'dark' ? colors.dark.status.success : '#4CAF50',
               borderRadius: 8,
               justifyContent: 'center',
               alignItems: 'center',
@@ -227,7 +338,7 @@ export const SettingsScreen = () => {
             style={{
               fontSize: fontSizes.heading2,
               fontWeight: '600',
-              color: '#212121',
+              color: textPrimary,
             }}
           >
             안전 기능
@@ -238,7 +349,7 @@ export const SettingsScreen = () => {
             style={{
               marginTop: spacing,
               height: buttonHeight,
-              backgroundColor: '#2196F3',
+              backgroundColor: accentColor,
               borderRadius: 8,
               justifyContent: 'center',
               alignItems: 'center',
@@ -268,15 +379,8 @@ export const SettingsScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
   },
   modeCard: {
-    backgroundColor: '#F5F5F5',
     borderWidth: 2,
-    borderColor: 'transparent',
-  },
-  selectedCard: {
-    borderColor: '#2196F3',
-    backgroundColor: '#E3F2FD',
   },
 });
