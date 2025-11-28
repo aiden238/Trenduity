@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
 import { Animated } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { A11yMode, getA11yTokens } from '@repo/ui';
+import { A11yMode, getA11yTokens } from '../tokens/a11y';
 
 interface A11yContextValue {
   mode: A11yMode;

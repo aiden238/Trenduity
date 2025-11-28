@@ -3,7 +3,13 @@
   "compilerOptions": {
     "jsx": "react-native",
     "lib": ["ES2020"],
-    "strict": true
+    "strict": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@repo/ui": ["../../packages/ui/src"],
+      "@repo/types": ["../../packages/types/src"]
+    }
   },
   "include": ["src/**/*", "App.tsx"],
   "exclude": ["node_modules"]

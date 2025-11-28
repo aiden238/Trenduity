@@ -13,4 +13,10 @@ config.resolver.nodeModulesPaths = [
   path.resolve(workspaceRoot, 'node_modules'),
 ];
 
+// @repo/* 패키지 모듈 해석 (추가)
+config.resolver.extraNodeModules = {
+  '@repo/ui': path.resolve(workspaceRoot, 'packages/ui/src'),
+  '@repo/types': path.resolve(workspaceRoot, 'packages/types/src'),
+};
+
 module.exports = config;

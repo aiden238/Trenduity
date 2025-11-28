@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { useColorScheme } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { COLORS } from '@repo/ui';
+import { COLORS } from '../tokens/colors';
 
 export type ThemeMode = 'system' | 'light' | 'dark';
 export type ActiveTheme = 'light' | 'dark';

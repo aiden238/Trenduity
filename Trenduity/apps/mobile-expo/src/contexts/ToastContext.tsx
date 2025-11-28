@@ -1,8 +1,12 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 import { View, StyleSheet } from 'react-native';
-import { Toast } from './Toast';
+import { Toast, ToastMessage, ToastType } from './Toast';
 import { useTheme } from '../contexts/ThemeContext';
-import { TOAST_DEFAULTS, type ToastMessage, type ToastType } from '@repo/ui';
+
+const TOAST_DEFAULTS = {
+  duration: 3000,
+  maxVisible: 3,
+};
 
 interface ToastContextValue {
   toasts: ToastMessage[];
