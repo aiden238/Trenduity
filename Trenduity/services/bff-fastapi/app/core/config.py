@@ -44,6 +44,7 @@ class Settings(BaseSettings):
     # ==================== JWT 설정 ====================
     JWT_SECRET: str = "dev-secret-change-in-production"
     JWT_EXPIRATION: int = 3600
+    SUPABASE_JWT_SECRET: Optional[str] = None  # Supabase JWT 검증용 (선택)
     
     # ==================== 외부 API ====================
     OPENAI_API_KEY: Optional[str] = None

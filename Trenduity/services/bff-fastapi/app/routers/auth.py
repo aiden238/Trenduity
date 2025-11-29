@@ -26,8 +26,8 @@ supabase: Client = create_client(
     settings.SUPABASE_SERVICE_ROLE_KEY
 )
 
-# JWT 설정
-JWT_SECRET = settings.SUPABASE_JWT_SECRET or "your-secret-key-change-in-production"
+# JWT 설정 (BFF 자체 JWT 토큰 생성용)
+JWT_SECRET = settings.JWT_SECRET
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRATION_DAYS = 30
 
