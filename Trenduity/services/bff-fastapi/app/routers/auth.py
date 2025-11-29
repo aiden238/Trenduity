@@ -118,7 +118,7 @@ async def signup(body: SignupRequest):
     """
     try:
         # 1. 이메일 중복 체크
-        existing = supabase.table("users").select("id").eq("email", body.email).execute()
+        existing = supabase.table("profiles").select("id").eq("email", body.email).execute()
         if existing.data:
             raise HTTPException(
                 status_code=400,
@@ -156,16 +156,16 @@ async def signup(body: SignupRequest):
         
         user_id = auth_response.user.id
         
-        # 3. users 테이블에 프로필 정보 저장
+        # 3. profiles 테이블에 프로필 정보 저장
         user_data = {
             "id": user_id,
             "email": body.email,
-            "name": body.name or "",
+            "display_name": body.name or "",
             "created_at": datetime.utcnow().isoformat(),
             "updated_at": datetime.utcnow().isoformat()
         }
         
-        supabase.table("users").insert(user_data).execute()
+        supabase.table("profiles").insert(user_data).execute()
         
         # 4. JWT 토큰 생성
         token = create_jwt_token(user_id, body.email)
@@ -228,8 +228,8 @@ async def login(body: LoginRequest):
         
         user_id = auth_response.user.id
         
-        # 2. users 테이블에서 프로필 정보 조회
-        user_result = supabase.table("users").select("*").eq("id", user_id).single().execute()
+        # 2. profiles 테이블에서 프로필 정보 조회
+        user_result = supabase.table("profiles").select("*").eq("id", user_id).single().execute()
         user_data = user_result.data
         
         # 3. JWT 토큰 생성
@@ -274,7 +274,7 @@ async def get_profile(user_id: str = Depends(lambda: "demo-user-id")):
     TODO: JWT 토큰 검증 미들웨어 추가 필요
     """
     try:
-        result = supabase.table("users").select("*").eq("id", user_id).single().execute()
+        result = supabase.table("profiles").select("*").eq("id", user_id).single().execute()
         
         if not result.data:
             raise HTTPException(
@@ -334,7 +334,7 @@ async def update_profile(
         update_data["updated_at"] = datetime.utcnow().isoformat()
         
         # Supabase 업데이트
-        result = supabase.table("users").update(update_data).eq("id", user_id).execute()
+        result = supabase.table("profiles").update(update_data).eq("id", user_id).execute()
         
         if not result.data:
             raise HTTPException(
