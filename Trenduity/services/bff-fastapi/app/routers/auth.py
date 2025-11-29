@@ -38,13 +38,15 @@ class SignupRequest(BaseModel):
     email: EmailStr = Field(..., description="이메일")
     password: str = Field(..., min_length=6, description="비밀번호 (최소 6자)")
     name: Optional[str] = Field(None, max_length=100, description="이름 (선택)")
+    phone: Optional[str] = Field(None, min_length=10, max_length=11, pattern=r"^\d{10,11}$", description="전화번호 (10-11자리 숫자, 선택)")
 
     class Config:
         json_schema_extra = {
             "example": {
                 "email": "senior@example.com",
                 "password": "password123",
-                "name": "홍길동"
+                "name": "홍길동",
+                "phone": "01012345678"
             }
         }
 
@@ -161,6 +163,7 @@ async def signup(body: SignupRequest):
             "id": user_id,
             "email": body.email,
             "display_name": body.name or "",
+            "phone": body.phone,
             "created_at": datetime.utcnow().isoformat(),
             "updated_at": datetime.utcnow().isoformat()
         }
