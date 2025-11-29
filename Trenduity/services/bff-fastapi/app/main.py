@@ -156,6 +156,10 @@ app.include_router(med.router, prefix=f"/{settings.API_VERSION}/med", tags=["med
 app.include_router(gamification.router, prefix=f"/{settings.API_VERSION}/gamification", tags=["gamification"])
 app.include_router(usage.router, prefix=f"/{settings.API_VERSION}/usage", tags=["usage"])
 
+# Auth 라우터 추가
+from app.routers import auth
+app.include_router(auth.router, prefix=f"/{settings.API_VERSION}/auth", tags=["auth"])
+
 
 @app.get("/health")
 async def health_check():
