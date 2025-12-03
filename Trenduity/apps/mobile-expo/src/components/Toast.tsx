@@ -8,7 +8,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { TOAST_CONFIGS, TOAST_ANIMATION, TOAST_DEFAULTS, type ToastMessage } from '@repo/ui';
+import { TOAST_CONFIGS, TOAST_ANIMATION, TOAST_DEFAULTS, type ToastMessage } from '../tokens/toast';
 
 interface ToastProps {
   toast: ToastMessage;

@@ -1,289 +1,307 @@
-# 다음 세션 재개 가이드
+# 다음 세션 재개 가이드 (2025년 12월 4일)
 
-## 📍 현재 상황 (2025-11-21)
+## 📍 현재 상태 요약
 
 ### ✅ 완료된 작업
-1. **Gamification 테이블 구조 수정** (100%)
-   - `total_points`, `current_streak`, `longest_streak` 컬럼 추가
-   - 마이그레이션 `002_verify_gamification_structure.sql` 실행 완료
-   - BFF `GamificationService` 코드 수정 (INSERT 시 `longest_streak` 포함)
+- **PlatformConstants 에러 해결 완료**
+  - 원인: `expo-linear-gradient@14.0.2` → `expo@49.0.23` → `expo-constants@14.4.2` (SDK 54와 충돌)
+  - 해결: `react-native-linear-gradient@2.8.3`로 교체 (Expo 의존성 제거)
+  - 검증: `npm list expo-constants` → 18.0.10만 존재 (14.4.2 완전 제거)
 
-2. **E2E 테스트 개선** (74% 달성 - 목표 70% 초과)
-   - 25/34 테스트 통과
-   - A11y: 10/10 ✅
-   - Med Check: 5/5 ✅
-   - Scam Check: 6/6 ✅
-   - Health: 1/1 ✅
-   - Card: 3/4 (1개 실패)
-   - Family: 0/8 (스킵)
+- **Expo SDK 54 버전 호환성 수정 완료**
+  - `expo-haptics`: 14.0.1 → **15.0.7** (SDK 54 호환)
+  - `expo-speech`: 13.0.1 → **14.0.7** (SDK 54 호환)
+  - `expo-status-bar`: 2.0.1 → **3.0.8** (SDK 54 호환)
+  - `npx expo install --fix` 명령어로 자동 수정됨
 
-3. **테스트 에러 핸들링 강화**
-   - 500 에러 감지 및 명확한 메시지 제공
-   - 첫 완료와 두 번째 완료 모두 에러 핸들링 추가
+- **UI 컴포넌트 업데이트 완료**
+  - `packages/ui/src/components/FloatingActionButton.tsx`
+  - `packages/ui/src/components/EmptyState.tsx`
+  - `packages/ui/src/components/ErrorState.tsx`
+  - `packages/ui/src/components/Spinner.tsx`
+  - `packages/ui/src/components/GradientCard.tsx`
+  - 모두 `expo-linear-gradient` → `react-native-linear-gradient`로 import 변경
 
-### 🔴 남은 문제 (핵심 - 다음 세션 최우선)
-
-**카드 완료 테스트 - 두 번째 완료 시 500 에러**
-- **증상**: 
-  - 첫 번째 완료: ✅ 성공 (200, 8 포인트)
-  - 두 번째 완료: ❌ 500 Internal Server Error
-- **예상 원인**:
-  1. `_is_card_completed_today()` 중복 체크가 Redis 캐시를 제대로 읽지 못함
-  2. `gamification.award_for_card_completion()`에서 중복 완료 시 예외 발생
-  3. Redis 키 TTL 또는 키 형식 문제
+- **의존성 정리 완료**
+  - 전체 `node_modules` 재설치 (root, mobile-expo, packages/ui)
+  - Metro 번들러 캐시 완전 삭제 (`.expo`, `node_modules/.cache`)
+  - 취약점 감소: 29개 → **5개** (83% 개선)
+  - 남은 5개 취약점: `ip` 패키지 (개발 도구 전용, 프로덕션 영향 없음)
 
 ---
 
-## 🚀 다음 세션 시작 체크리스트
+## 🔧 현재 기술 스택 (2025년 12월 4일 기준)
 
-### 1단계: 환경 상태 확인 (2분)
+### Core Dependencies
+```json
+{
+  "expo": "~54.0.0",
+  "react": "19.1.0",
+  "react-native": "0.81.5",
+  "expo-constants": "~18.0.0"
+}
+```
 
+### Expo SDK 54 호환 패키지
+```json
+{
+  "expo-haptics": "~15.0.7",
+  "expo-speech": "~14.0.7",
+  "expo-status-bar": "~3.0.8"
+}
+```
+
+### Gradient 라이브러리
+```json
+{
+  "react-native-linear-gradient": "^2.8.3"
+}
+```
+> ⚠️ **중요**: `expo-linear-gradient`는 제거됨. 절대 재설치하지 말 것!
+
+---
+
+## ⚠️ 다음 세션 시작 시 필수 확인 사항
+
+### 1️⃣ Expo 서버 재시작 필요 (최우선!)
 ```powershell
-# BFF 서버 실행 중인지 확인
-Get-NetTCPConnection -LocalPort 8002 -ErrorAction SilentlyContinue
+# 기존 Node 프로세스 종료
+Stop-Process -Name "node" -Force -ErrorAction SilentlyContinue
+Start-Sleep 3
 
-# Docker 컨테이너 상태
-docker ps --filter "name=redis" --filter "name=postgres"
+# 깨끗한 캐시로 Expo 시작
+cd c:\AIDEN_PROJECT\Trenduity\Trenduity\apps\mobile-expo
+npx expo start --clear --reset-cache
+```
 
-# 현재 브랜치 및 변경사항
-cd c:\AIDEN_PROJECT\Trenduity\Trenduity
+**이유**: `npx expo install --fix`로 3개 패키지 버전이 업데이트되었으므로, 새 버전을 적용하려면 서버 재시작 필수.
+
+### 2️⃣ 실제 디바이스 테스트 필요
+```
+현재 상태: 코드 수정 완료, 의존성 수정 완료, 서버 재시작 대기 중
+다음 단계: Expo Go 앱에서 QR 코드 스캔 후 PlatformConstants 에러 해결 여부 확인
+```
+
+**예상 결과**:
+- ✅ 성공 시: 앱이 정상적으로 로드되며 에러 없음
+- ❌ 실패 시: Metro 번들러 로그 확인 필요 (`npx expo start` 터미널 출력)
+
+### 3️⃣ 버전 최종 검증 (선택적)
+```powershell
+# expo-constants 단일 버전 확인
+npm list expo-constants --all
+
+# 업데이트된 패키지 확인
+npm list expo-haptics expo-speech expo-status-bar react-native-linear-gradient --depth=0
+```
+
+**예상 출력**:
+```
+mobile-expo@0.1.0
+├── expo-constants@18.0.10
+├── expo-haptics@15.0.7
+├── expo-speech@14.0.7
+├── expo-status-bar@3.0.8
+└── react-native-linear-gradient@2.8.3
+```
+
+---
+
+## 🚫 주의사항 (절대 하지 말 것!)
+
+### ❌ expo-linear-gradient 재설치 금지
+```powershell
+# 이 명령어 절대 실행 금지!
+npm install expo-linear-gradient
+npx expo install expo-linear-gradient
+```
+**이유**: 다시 `expo@49.0.23` → `expo-constants@14.4.2` 충돌 발생
+
+### ❌ Expo SDK 버전 수동 변경 금지
+```json
+// package.json에서 이 버전들을 절대 수동 수정하지 말 것!
+{
+  "expo-haptics": "~14.0.0",  // 잘못된 버전!
+  "expo-speech": "~13.0.0",   // 잘못된 버전!
+  "expo-status-bar": "~2.0.0" // 잘못된 버전!
+}
+```
+**이유**: SDK 54와 호환되지 않음. Expo CLI의 `--fix` 플래그 사용 권장.
+
+### ❌ 선택적 node_modules 삭제 금지
+```powershell
+# 이렇게 특정 패키지만 삭제하면 의존성 트리 깨짐
+Remove-Item -Recurse -Force node_modules/expo-constants
+```
+**올바른 방법**: 전체 재설치 (`Remove-Item -Recurse node_modules; npm install`)
+
+---
+
+## 🔍 문제 발생 시 디버깅 체크리스트
+
+### Case 1: PlatformConstants 에러 재발 시
+```powershell
+# 1. expo-constants 버전 확인 (18.0.10만 있어야 함)
+npm list expo-constants --all
+
+# 2. expo@49 의존성 존재 여부 확인 (아무것도 없어야 함)
+npm list expo --all | Select-String "49.0"
+
+# 3. Metro 캐시 완전 삭제
+Remove-Item -Recurse -Force .expo, node_modules\.cache
+npx expo start --clear --reset-cache
+```
+
+### Case 2: LinearGradient 컴포넌트 에러 시
+```typescript
+// 올바른 import (default export)
+import LinearGradient from 'react-native-linear-gradient';
+
+// ❌ 잘못된 import (named export)
+import { LinearGradient } from 'expo-linear-gradient';
+```
+
+**수정한 파일 목록**:
+- `packages/ui/src/components/FloatingActionButton.tsx`
+- `packages/ui/src/components/EmptyState.tsx`
+- `packages/ui/src/components/ErrorState.tsx`
+- `packages/ui/src/components/Spinner.tsx`
+- `packages/ui/src/components/GradientCard.tsx`
+
+### Case 3: Expo 버전 경고 발생 시
+```powershell
+# Expo CLI가 자동으로 올바른 버전 설치
+npx expo install --fix
+```
+
+---
+
+## 📋 다음 세션 작업 순서 (권장)
+
+### Step 1: 환경 확인 (2분)
+```powershell
+# 1. 현재 디렉토리 확인
+Get-Location
+
+# 2. Git 상태 확인
 git status --short
+
+# 3. Expo 서버 상태 확인 (실행 중이면 종료)
+Get-Process | Where-Object {$_.ProcessName -like "*node*"}
 ```
 
-### 2단계: 테스트 환경 리셋 (1분)
-
+### Step 2: Expo 서버 재시작 (3분)
 ```powershell
-# 완료 기록 삭제 + Redis 플러시
-cd c:\AIDEN_PROJECT\Trenduity\Trenduity\services\bff-fastapi
-. .\venv\Scripts\Activate.ps1
-python ..\..\scripts\reset_card_completion.py
-docker exec trenduity-redis redis-cli FLUSHALL
+# 1. 기존 프로세스 종료
+Stop-Process -Name "node" -Force -ErrorAction SilentlyContinue
+Start-Sleep 3
+
+# 2. mobile-expo 디렉토리로 이동
+cd c:\AIDEN_PROJECT\Trenduity\Trenduity\apps\mobile-expo
+
+# 3. 깨끗한 캐시로 시작
+npx expo start --clear --reset-cache
 ```
 
-### 3단계: BFF 서버 재시작 (디버그 모드) (2분)
-
-```powershell
-# 기존 프로세스 종료
-$proc = Get-NetTCPConnection -LocalPort 8002 -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique
-if ($proc) { Stop-Process -Id $proc -Force; Start-Sleep -Seconds 3 }
-
-# 새 터미널에서 디버그 모드로 시작 (로그 확인 가능)
-cd c:\AIDEN_PROJECT\Trenduity\Trenduity\services\bff-fastapi
-. .\venv\Scripts\Activate.ps1
-python -m uvicorn app.main:app --host 0.0.0.0 --port 8002 --reload --log-level debug
+**예상 출력**:
+```
+› Metro waiting on exp://192.168.x.x:8081
+› Scan the QR code above with Expo Go (Android) or the Camera app (iOS)
 ```
 
-### 4단계: E2E 테스트 실행 (별도 터미널) (1분)
+### Step 3: 실제 디바이스 테스트 (5분)
+1. 휴대폰에서 Expo Go 앱 열기
+2. QR 코드 스캔
+3. 앱 로딩 확인
+4. **PlatformConstants 에러 없이 정상 작동하는지 확인**
 
+**성공 기준**:
+- ✅ 홈 화면 정상 표시
+- ✅ 그라디언트 효과 정상 표시 (FloatingActionButton, GradientCard 등)
+- ✅ TurboModuleRegistry 에러 없음
+
+### Step 4: 최종 검증 (2분)
 ```powershell
-cd c:\AIDEN_PROJECT\Trenduity\Trenduity\e2e
-npx playwright test scenarios/card-completion.spec.ts:91 --reporter=list
+# 1. 버전 확인
+npm list expo-constants expo-haptics expo-speech expo-status-bar --depth=0
+
+# 2. 취약점 확인 (5개여야 함)
+npm audit --production
 ```
 
 ---
 
-## 🔍 디버깅 전략
+## 📊 완료 여부 체크리스트
 
-### Option A: BFF 로그 분석 (추천)
+다음 세션에서 아래 항목들을 확인하세요:
 
-BFF 서버 터미널에서 실시간 로그 확인:
-- ✅ `🔥 Complete card called` (엔드포인트 진입)
-- ✅ `🔥 Card found` (카드 조회 성공)
-- ❓ **중복 체크 통과 여부** (로그 없으면 문제)
-- ❓ `🔥 Calling gamification` (게임화 서비스 호출)
-- ❌ 에러 발생 지점
+- [ ] Expo 서버 재시작 완료 (`npx expo start --clear --reset-cache`)
+- [ ] 실제 디바이스에서 앱 정상 작동 확인
+- [ ] PlatformConstants 에러 없음 확인
+- [ ] LinearGradient 컴포넌트 정상 렌더링 확인
+- [ ] `expo-constants@18.0.10` 단일 버전 확인
+- [ ] `expo-haptics@15.0.7` 버전 확인
+- [ ] `expo-speech@14.0.7` 버전 확인
+- [ ] `expo-status-bar@3.0.8` 버전 확인
+- [ ] 취약점 5개 (dev-only) 확인
 
-**예상되는 로그 패턴:**
-```
-INFO: 127.0.0.1:xxxxx - "POST /v1/cards/complete HTTP/1.1" 200 OK
-🔥 Complete card called: card_id=xxx, user_id=demo-user-50s
-🔥 Card found: dict_keys([...])
-🔥 Calling gamification: completion_date=2025-11-21, quiz_result=None
-🔥 Gamification result: {...}
-🔥 Card completion recorded
+---
 
-# 두 번째 호출
-INFO: 127.0.0.1:xxxxx - "POST /v1/cards/complete HTTP/1.1" 500 Internal Server Error
-🔥 Complete card called: card_id=xxx, user_id=demo-user-50s
-🔥 Card found: dict_keys([...])
-# ❓ 여기서 멈추거나 에러 발생
-```
+## 🎯 작업 완료 시 다음 단계
 
-### Option B: Redis 키 확인
+현재 **SCAFFOLD 단계** 완료, **IMPLEMENT 단계** 진행 중 (65%)
 
+### 우선순위 작업:
+1. **GamificationService 포인트 로직 구현** (`services/bff-fastapi/app/services/gamification_service.py`)
+2. **카드 완료 플로우 통합 테스트** (BFF → Supabase 쓰기 검증)
+3. **A11y 모드 전환 UI/UX 개선** (`apps/mobile-expo/src/contexts/A11yContext.tsx`)
+4. **시드 데이터로 전체 플로우 검증** (`scripts/seed_data.py`)
+
+### 참고 문서:
+- 구현 규칙: `docs/IMPLEMENT/01-implementation-rules.md`
+- 아키텍처 개요: `docs/PLAN/01-2-architecture-overview.md`
+- 일일 카드 게임화: `docs/IMPLEMENT/02-daily-card-gamification.md`
+
+---
+
+## 📞 긴급 문제 발생 시
+
+### 문제: PlatformConstants 에러 재발
 ```powershell
-# 첫 완료 후 Redis 키 확인
-docker exec trenduity-redis redis-cli KEYS "card:complete:*"
+# 해결: expo-constants 버전 충돌 재확인
+npm list expo-constants --all
 
-# 예상 키 형식
-# card:complete:demo-user-50s:ee4148a8-6f5b-497f-8f44-40c537e19220
-
-# 키 값 확인
-docker exec trenduity-redis redis-cli GET "card:complete:demo-user-50s:ee4148a8-6f5b-497f-8f44-40c537e19220"
-
-# TTL 확인 (86400초 = 24시간)
-docker exec trenduity-redis redis-cli TTL "card:complete:demo-user-50s:ee4148a8-6f5b-497f-8f44-40c537e19220"
+# 14.4.2 발견 시 → 의존성 트리 추적
+npm list --all | Select-String "expo@49"
 ```
 
-### Option C: Python 직접 테스트
-
+### 문제: LinearGradient 렌더링 안 됨
 ```powershell
-cd c:\AIDEN_PROJECT\Trenduity\Trenduity\services\bff-fastapi
-. .\venv\Scripts\Activate.ps1
-
-# 첫 완료
-python ..\..\scripts\test_card_completion.py
-
-# Redis 키 확인
-docker exec trenduity-redis redis-cli KEYS "*"
-
-# 두 번째 완료 (400 예상)
-python ..\..\scripts\test_card_completion.py
+# 해결: react-native-linear-gradient 재설치
+cd apps/mobile-expo
+npm uninstall react-native-linear-gradient
+npm install react-native-linear-gradient@^2.8.3
 ```
 
----
-
-## 🛠️ 예상되는 수정 사항
-
-### 수정 1: Redis 키 생성 함수 확인
-
-**파일**: `services/bff-fastapi/app/routers/cards.py`
-
-```python
-def _get_completion_key(user_id: str, card_id: str) -> str:
-    """Redis 완료 키 생성"""
-    return f"card:complete:{user_id}:{card_id}"
-```
-
-### 수정 2: 중복 체크 로직 강화
-
-**파일**: `services/bff-fastapi/app/routers/cards.py` (line 26-50)
-
-**현재 코드**:
-```python
-def _is_card_completed_today(redis: Optional[Redis], db: Optional[Client], user_id: str, card_id: str) -> bool:
-    """Redis 또는 DB에서 오늘 완료 여부 확인 (동기 함수)"""
-    # 1. Redis 우선 확인 (빠름)
-    if redis:
-        key = _get_completion_key(user_id, card_id)
-        try:
-            if redis.exists(key) > 0:
-                logger.info(f"Redis에서 중복 감지: {key}")
-                return True
-        except Exception as e:
-            logger.error(f"Redis 완료 확인 실패: {e}")
-    # ...
-```
-
-**개선 필요 사항**:
-- `redis.exists(key)` 실패 시 로그 추가
-- Redis 연결 상태 확인
-- 키 형식 검증
-
-### 수정 3: Gamification 중복 완료 처리
-
-**파일**: `services/bff-fastapi/app/services/gamification.py` (line 70-105)
-
-**가능한 문제**:
-- `_get_or_create_gamification` 호출 시 DB 에러
-- `_update_streak` 호출 시 날짜 파싱 에러
-- `_check_new_badges` 호출 시 배지 로직 에러
-
-**추가할 에러 핸들링**:
-```python
-async def award_for_card_completion(...):
-    try:
-        # 기존 로직
-        gamif = await self._get_or_create_gamification(user_id)
-        streak_days = await self._update_streak(gamif, completion_date)
-        # ...
-    except Exception as e:
-        logger.error(f"Gamification 에러: {e}", exc_info=True)
-        # 기본값 반환 (포인트만 부여)
-        return {
-            "points_added": points,
-            "total_points": 0,
-            "streak_days": 0,
-            "new_badges": [],
-            "level": 1
-        }
-```
-
----
-
-## 📊 성공 기준
-
-### 최소 목표 (이미 달성 ✅)
-- E2E 테스트 70% 이상 통과 (현재 74%)
-
-### 이상적 목표 (다음 세션)
-- 카드 완료 테스트 4/4 통과 → **26/34 (76%)**
-- 두 번째 완료 시 400 에러 (ALREADY_COMPLETED) 반환
-- Redis 캐시 정상 작동
-
-### 최종 목표 (선택)
-- Family link 테스트 구현 (Next.js 서버 필요) → 34/34 (100%)
-
----
-
-## 📁 핵심 파일 위치
-
-```
-services/bff-fastapi/app/
-├── routers/cards.py                   # 카드 완료 엔드포인트 (line 319-455)
-│   ├── _get_completion_key()          # Redis 키 생성 (line 22-24)
-│   ├── _is_card_completed_today()     # 중복 체크 (line 26-50)
-│   └── _mark_card_completed()         # 완료 기록 (line 52-78)
-├── services/gamification.py            # 게임화 로직 (line 70-145)
-│   ├── award_for_card_completion()    # 포인트/스트릭 업데이트
-│   ├── _get_or_create_gamification()  # 게임화 레코드 조회/생성
-│   └── _update_streak()               # 스트릭 계산
-└── core/deps.py                        # Redis 의존성 (line 80-95)
-
-e2e/scenarios/card-completion.spec.ts   # 테스트 (line 91-160)
-scripts/reset_card_completion.py         # 테스트 환경 리셋
-scripts/test_card_completion.py          # 직접 API 테스트
-scripts/migrations/002_verify_gamification_structure.sql  # DB 마이그레이션
-```
-
----
-
-## 🎯 다음 세션 목표 (30분 예상)
-
-1. **BFF 로그 분석** (10분)
-   - 두 번째 완료 시 어디서 멈추는지 확인
-   - Redis 키 존재 여부 확인
-   - Gamification 호출 여부 확인
-
-2. **근본 원인 수정** (15분)
-   - 중복 체크 로직 강화 또는
-   - Gamification 에러 핸들링 추가
-
-3. **E2E 테스트 검증** (5분)
-   - 26/34 (76%) 달성 확인
-   - 카드 완료 4/4 통과 확인
-
----
-
-## 💡 빠른 시작 명령어 (복사 후 실행)
-
+### 문제: Metro 번들러 충돌
 ```powershell
-# 터미널 1: BFF 서버 (디버그 모드)
-cd c:\AIDEN_PROJECT\Trenduity\Trenduity\services\bff-fastapi
-. .\venv\Scripts\Activate.ps1
-docker exec trenduity-redis redis-cli FLUSHALL
-python ..\..\scripts\reset_card_completion.py
-python -m uvicorn app.main:app --host 0.0.0.0 --port 8002 --reload --log-level debug
-```
-
-```powershell
-# 터미널 2: E2E 테스트
-cd c:\AIDEN_PROJECT\Trenduity\Trenduity\e2e
-npx playwright test scenarios/card-completion.spec.ts:91 --reporter=list
+# 해결: 완전 초기화
+Stop-Process -Name "node" -Force -ErrorAction SilentlyContinue
+Remove-Item -Recurse -Force .expo, node_modules\.cache
+npx expo start --clear --reset-cache
 ```
 
 ---
 
-**현재 남은 토큰**: 927,018 / 1,000,000 (92.7% 사용)  
-**최종 업데이트**: 2025-11-21  
-**다음 세션 우선순위**: P1 - 카드 완료 중복 방지 500 에러 해결
+## 🔗 관련 문서
+
+- **Copilot 지침서**: `.github/copilot-instructions.md`
+- **ADR (아키텍처 결정 기록)**: `.github/ADR.md`
+- **빠른 명령어**: `.github/QUICK_COMMANDS.md`
+- **코드 템플릿**: `.github/CODE_TEMPLATES.md`
+
+---
+
+**최종 업데이트**: 2025년 12월 4일  
+**작성자**: GitHub Copilot  
+**다음 세션 담당자**: 위 체크리스트 따라 Expo 서버 재시작 후 실제 디바이스 테스트 진행 필수!

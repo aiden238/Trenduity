@@ -82,7 +82,7 @@ class Settings(BaseSettings):
     SENTRY_TRACES_SAMPLE_RATE: float = 0.1
     
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file="../../.env",  # 루트 디렉터리의 .env 파일 참조
         case_sensitive=True,
         extra="ignore"
     )

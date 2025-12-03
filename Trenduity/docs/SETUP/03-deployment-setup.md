@@ -1,6 +1,13 @@
-# Render 배포 빠른 시작 가이드
+# 배포 설정 가이드
 
-## 🚀 1단계: Render 계정 생성 (1분)
+**생성일**: 2025-12-02  
+**목적**: Render.com 배포 및 환경 변수 설정 통합 가이드
+
+---
+
+## 🚀 1. Render 빠른 시작
+
+### 1단계: Render 계정 생성 (1분)
 
 1. 브라우저에서 https://render.com 열기
 2. **"Get Started for Free"** 클릭
@@ -8,9 +15,9 @@
 
 ---
 
-## 📦 2단계: BFF API 배포 (5분)
+### 2단계: BFF API 배포 (5분)
 
-### 방법 A: Blueprint로 자동 배포 (권장)
+#### 방법 A: Blueprint로 자동 배포 (권장)
 
 1. Render Dashboard → **"New +"** → **"Blueprint"**
 2. GitHub 저장소 **"Trenduity"** 선택
@@ -18,13 +25,13 @@
 
 `render.yaml` 파일을 자동으로 감지하여 배포 시작!
 
-### 방법 B: 수동 Web Service 생성
+#### 방법 B: 수동 Web Service 생성
 
 1. Render Dashboard → **"New +"** → **"Web Service"**
 2. **"Build and deploy from a Git repository"** 선택
 3. GitHub 저장소 **"Trenduity"** 연결
 
-**설정값 입력**:
+**설정값**:
 ```
 Name: trenduity-bff
 Region: Singapore
@@ -38,55 +45,84 @@ Instance Type: Free
 
 ---
 
-## 🔐 3단계: 환경 변수 설정 (3분)
+## 🔐 2. 환경 변수 설정
 
-Render Dashboard의 해당 서비스 → **"Environment"** 탭:
+### 필수 환경 변수
 
-**추가할 환경 변수**:
+Render Dashboard → 해당 서비스 → **"Environment"** 탭에서 추가:
 
-| Key | Value | 어디서 확인? |
-|-----|-------|-------------|
-| `SUPABASE_URL` | `https://onnthandrqutdmvwnilf.supabase.co` | 이미 알고 있음 |
-| `SUPABASE_ANON_KEY` | `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...` | `.env` 파일 또는 Supabase 대시보드 |
-| `SUPABASE_SERVICE_ROLE_KEY` | `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...` | Supabase → Settings → API → service_role |
-| `ENV` | `production` | 그대로 입력 |
-| `PYTHON_VERSION` | `3.11.0` | 그대로 입력 |
+#### SUPABASE_URL
+```
+https://onnthandrqutdmvwnilf.supabase.co
+```
 
-**Supabase 키 찾기**:
+#### SUPABASE_ANON_KEY
+```
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ubnRoYW5kcnF1dGRtdnduaWxmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzE4MjA4NjAsImV4cCI6MjA0NzM5Njg2MH0.W6xQGXBaVwWFSgLJ-R0zDJUE-Y4PJo_dDBEcWKmw_oY
+```
+
+#### SUPABASE_SERVICE_ROLE_KEY
+⚠️ **중요**: 이 키는 매우 민감한 정보입니다!
+
+**Supabase 대시보드에서 직접 복사**:
+1. https://app.supabase.com 로그인
+2. 프로젝트 선택 (onnthandrqutdmvwnilf)
+3. Settings → API → service_role key (secret) 복사
+
+**또는 로컬 .env 파일에서 확인**:
 ```powershell
-# 로컬 .env 파일에서 확인
 Get-Content c:\AIDEN_PROJECT\Trenduity\Trenduity\.env | Select-String "SUPABASE"
 ```
 
-또는:
-1. https://app.supabase.com 로그인
-2. 프로젝트 선택 (onnthandrqutdmvwnilf)
-3. Settings → API
-4. **anon public** 키와 **service_role** 키 복사
+#### 기타 환경 변수
+```
+ENV=production
+PYTHON_VERSION=3.11.0
+```
 
 ---
 
-## ✅ 4단계: 배포 확인 (2분)
+### 환경 변수 입력 체크리스트
+
+- [ ] `SUPABASE_URL` (위 값 복사)
+- [ ] `SUPABASE_ANON_KEY` (위 값 복사)
+- [ ] `SUPABASE_SERVICE_ROLE_KEY` (Supabase에서 복사)
+- [ ] `ENV` = production
+- [ ] `PYTHON_VERSION` = 3.11.0
+
+---
+
+## ✅ 3. 배포 성공 확인
 
 ### 빌드 로그 확인
 1. Render Dashboard → 서비스 선택
 2. **"Logs"** 탭에서 실시간 로그 확인
 3. "Application startup complete" 메시지 대기
 
+**예상 로그**:
+```
+INFO:     Uvicorn running on http://0.0.0.0:10000 (Press CTRL+C to quit)
+INFO:     Started reloader process [xxxxx]
+INFO:     Started server process [xxxxx]
+INFO:     Waiting for application startup.
+INFO:     Redis 연결 풀 초기화 시작
+INFO:     Redis 연결 풀 초기화 성공
+INFO:     Application startup complete.
+```
+
 ### 배포 URL 메모
 1. **"Settings"** 탭 → 상단에서 URL 확인
    ```
    예: https://trenduity-bff.onrender.com
    ```
-2. 이 URL을 메모장에 저장 (나중에 필요)
+2. 이 URL을 메모 (나중에 필요)
 
 ### 헬스 체크 테스트
 ```powershell
-# PowerShell에서 테스트
 Invoke-WebRequest -Uri "https://trenduity-bff.onrender.com/health"
 ```
 
-예상 응답:
+**예상 응답**:
 ```json
 {
   "status": "healthy",
@@ -96,7 +132,7 @@ Invoke-WebRequest -Uri "https://trenduity-bff.onrender.com/health"
 
 ---
 
-## 🌐 5단계: Vercel에 Web 배포 (3분)
+## 🌐 4. Vercel에 Web 배포 (선택)
 
 1. https://vercel.com 로그인 (GitHub 계정)
 2. **"Add New..." → "Project"**
@@ -114,12 +150,11 @@ Invoke-WebRequest -Uri "https://trenduity-bff.onrender.com/health"
 
 ---
 
-## 📱 6단계: Mobile App 설정 업데이트
+## 📱 5. Mobile App 설정 업데이트
 
 로컬 파일 수정:
 
 ```powershell
-# .env 파일 열기
 code c:\AIDEN_PROJECT\Trenduity\Trenduity\apps\mobile-expo\.env
 ```
 
@@ -136,21 +171,11 @@ EXPO_PUBLIC_BFF_API_URL=https://trenduity-bff.onrender.com
 ENV=production
 ```
 
----
-
-## 🎯 7단계: 모바일 앱 테스트
-
+**Expo 서버 재시작**:
 ```powershell
-# Expo 서버 재시작 (캐시 클리어)
 cd c:\AIDEN_PROJECT\Trenduity\Trenduity\apps\mobile-expo
 npm start -- --clear
 ```
-
-1. 폰에서 Expo Go 앱 열기
-2. QR 코드 스캔
-3. 앱 로드 확인
-4. **홈 화면에서 카드 로딩 테스트**
-5. **퀴즈 제출 테스트**
 
 ---
 
@@ -168,7 +193,6 @@ npm start -- --clear
    ```
 3. 의존성 문제:
    ```powershell
-   # 로컬에서 테스트
    cd c:\AIDEN_PROJECT\Trenduity\Trenduity\services\bff-fastapi
    pip install -r requirements.txt
    ```
@@ -212,7 +236,6 @@ npm start -- --clear
 2. Render URL 정확한지 확인 (https:// 포함)
 3. Expo 서버 완전히 재시작:
    ```powershell
-   # Ctrl+C로 종료 후
    npm start -- --clear
    ```
 
@@ -269,7 +292,9 @@ npm start -- --clear
 
 ---
 
-**문제 발생 시**: 
-- Render Logs 탭 확인
-- `docs/RENDER_DEPLOYMENT.md` 상세 가이드 참조
-- Supabase Dashboard에서 RLS 정책 확인
+**참고 문서**:
+- 프로젝트 아키텍처: `../PLAN/01-2-architecture-overview.md`
+- BFF 구현: `../IMPLEMENT/05-bff-service.md`
+- Supabase 설정: `../SUPABASE_SETUP_GUIDE.md`
+
+**최종 업데이트**: 2025-12-02

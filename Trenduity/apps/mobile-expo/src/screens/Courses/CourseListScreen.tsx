@@ -10,6 +10,14 @@ import { useA11y } from '../../contexts/A11yContext';
  * TODO(IMPLEMENT): 트랙 상세 네비게이션
  */
 export const CourseListScreen = () => {
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>코스 화면</Text>
+    </View>
+  );
+};
+
+const oldCourseListScreen = () => {
   const { mode } = useA11y();
 
   // Dummy data

@@ -1,6 +1,6 @@
 import React from 'react';
 import { TouchableOpacity, StyleSheet, ViewStyle, TextStyle } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import LinearGradient from 'react-native-linear-gradient';
 import { Typography } from './Typography';
 import { COLORS, SPACING, SHADOWS, RADIUS } from '../tokens/colors';
 
@@ -73,7 +73,7 @@ export const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({
       >
         {icon && (
           <Typography
-            variant="heading2"
+            variant="title"
             style={styles.icon}
           >
             {icon}

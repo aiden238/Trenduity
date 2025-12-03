@@ -88,19 +88,30 @@ async def list_qna(
                 "data": QnaListResponse(posts=[], total=0).model_dump(),
             }
 
-        # vote_count 조회 (별도 쿼리)
-        posts = []
-        for post in result.data:
+        # vote_count 일괄 조회 (N+1 쿼리 방지)
+        post_ids = [post["id"] for post in result.data]
+        vote_counts = {}
+        if post_ids:
             try:
-                vote_result = (
+                # 모든 포스트의 투표를 한 번에 조회
+                votes_result = (
                     supabase.table("qna_votes")
-                    .select("id", count="exact")
-                    .eq("post_id", post["id"])
+                    .select("post_id")
+                    .in_("post_id", post_ids)
                     .execute()
                 )
-                vote_count = vote_result.count or 0
+                
+                # post_id별 카운트 집계
+                for vote in votes_result.data or []:
+                    post_id = vote["post_id"]
+                    vote_counts[post_id] = vote_counts.get(post_id, 0) + 1
             except Exception:
-                vote_count = 0
+                pass
+        
+        posts = []
+        for post in result.data:
+            # 미리 조회한 vote_count 사용
+            vote_count = vote_counts.get(post["id"], 0)
 
             posts.append(
                 QnaPostListItem(

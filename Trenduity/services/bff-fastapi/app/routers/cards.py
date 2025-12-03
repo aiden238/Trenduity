@@ -23,8 +23,8 @@ def _get_completion_key(user_id: str, card_id: str) -> str:
     today = datetime.now().date().isoformat()
     return f"completed:{user_id}:{card_id}:{today}"
 
-def _is_card_completed_today(redis: Optional[Redis], db: Optional[Client], user_id: str, card_id: str) -> bool:
-    """Redis 또는 DB에서 오늘 완료 여부 확인 (동기 함수)"""
+async def _is_card_completed_today(redis: Optional[Redis], db: Optional[Client], user_id: str, card_id: str) -> bool:
+    """Redis 또는 DB에서 오늘 완료 여부 확인 (비동기 함수)"""
     # 1. Redis 우선 확인 (빠름)
     if redis:
         key = _get_completion_key(user_id, card_id)
@@ -49,8 +49,8 @@ def _is_card_completed_today(redis: Optional[Redis], db: Optional[Client], user_
     
     return False
 
-def _mark_card_completed(redis: Optional[Redis], db: Optional[Client], user_id: str, card_id: str, quiz_correct: int = 0, quiz_total: int = 0):
-    """Redis와 DB에 완료 기록 (동기 함수)"""
+async def _mark_card_completed(redis: Optional[Redis], db: Optional[Client], user_id: str, card_id: str, quiz_correct: int = 0, quiz_total: int = 0):
+    """Redis와 DB에 완료 기록 (비동기 함수)"""
     # 1. Redis에 기록 (빠른 중복 체크용, 24시간 TTL)
     if redis:
         key = _get_completion_key(user_id, card_id)
@@ -383,7 +383,7 @@ async def complete_card(
             )
         
         # 3. 중복 완료 방지 (Redis 또는 DB 기반 - 1차 체크)
-        is_completed = _is_card_completed_today(redis, db, user_id, body.card_id)
+        is_completed = await _is_card_completed_today(redis, db, user_id, body.card_id)
         if is_completed:
             logger.info(f"중복 완료 차단 (1차 체크): user={user_id}, card={body.card_id}")
             raise HTTPException(
@@ -441,7 +441,7 @@ async def complete_card(
         
         # 2차 중복 체크 (게임화 후 DB 기록 전 - 경쟁 조건 최종 방어)
         try:
-            is_completed_final = _is_card_completed_today(redis, db, user_id, body.card_id)
+            is_completed_final = await _is_card_completed_today(redis, db, user_id, body.card_id)
             if is_completed_final:
                 logger.warning(f"중복 완료 차단 (2차 - DB 기록 직전): user={user_id}, card={body.card_id}")
                 raise HTTPException(
@@ -461,7 +461,7 @@ async def complete_card(
         
         # 완료 기록 추가 (Redis + DB)
         try:
-            _mark_card_completed(
+            await _mark_card_completed(
                 redis, db, user_id, body.card_id,
                 quiz_correct=quiz_result['correct'] if quiz_result else 0,
                 quiz_total=quiz_result['total'] if quiz_result else 0

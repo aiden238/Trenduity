@@ -25,8 +25,8 @@ async def lifespan(app: FastAPI):
     # 종료 시
     logger.info("BFF 서버 종료 중...")
 
-
 app = FastAPI(
+    lifespan=lifespan,
     title="🎓 Trenduity BFF API",
     description="""
     ## 50-70대 시니어를 위한 디지털 리터러시 학습 플랫폼
@@ -80,7 +80,6 @@ app = FastAPI(
     - [구현 규칙](docs/IMPLEMENT/01-implementation-rules.md)
     """,
     version="1.0.0",
-    lifespan=lifespan,
     docs_url="/docs",
     redoc_url="/redoc",
     openapi_tags=[

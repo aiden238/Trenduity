@@ -59,10 +59,18 @@ def get_supabase() -> Optional[Client]:
 
 def get_redis_client() -> Optional[Redis]:
     """
-    Redis 클라이언트 의존성 (단순 반환, Generator 아님)
+    Redis 클라이언트 의존성 (단순 반환 함수)
     
     연결 풀에서 클라이언트 가져오기
     Redis 연결 실패 시 None 반환 (앱이 중단되지 않도록)
+    
+    사용법:
+        redis: Optional[Redis] = Depends(get_redis_client)
+        if redis:
+            redis.set("key", "value")
+    
+    주의: 이 함수는 Generator가 아닌 단순 반환 함수입니다.
+          기존 `for client in get_redis_client()` 패턴은 사용하지 마세요.
     """
     if _redis_pool is None:
         logger.warning("Redis 연결 풀이 초기화되지 않았습니다. None 반환.")

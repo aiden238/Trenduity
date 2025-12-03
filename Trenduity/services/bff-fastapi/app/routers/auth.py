@@ -14,17 +14,12 @@ from typing import Optional
 from datetime import datetime, timedelta
 import logging
 import jwt
-from supabase import create_client, Client
+from supabase import Client
 from app.core.config import settings
+from app.core.deps import get_supabase, get_current_user
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
-
-# Supabase 클라이언트 (service_role 키 사용 - RLS 우회)
-supabase: Client = create_client(
-    settings.SUPABASE_URL,
-    settings.SUPABASE_SERVICE_ROLE_KEY
-)
 
 # JWT 설정 (BFF 자체 JWT 토큰 생성용)
 JWT_SECRET = settings.JWT_SECRET
@@ -110,7 +105,7 @@ def get_current_user_from_token(token: str) -> dict:
 
 
 @router.post("/signup", response_model=dict)
-async def signup(body: SignupRequest):
+async def signup(body: SignupRequest, supabase: Client = Depends(get_supabase)):
     """
     회원가입
     
@@ -118,6 +113,8 @@ async def signup(body: SignupRequest):
     - Supabase users 테이블에 저장
     - JWT 토큰 반환
     """
+    if not supabase:
+        raise HTTPException(status_code=503, detail={"ok": False, "error": {"message": "서비스를 사용할 수 없습니다."}})
     try:
         # 1. 이메일 중복 체크
         existing = supabase.table("profiles").select("id").eq("email", body.email).execute()
@@ -203,7 +200,7 @@ async def signup(body: SignupRequest):
 
 
 @router.post("/login", response_model=dict)
-async def login(body: LoginRequest):
+async def login(body: LoginRequest, supabase: Client = Depends(get_supabase)):
     """
     로그인
     
@@ -270,12 +267,18 @@ async def login(body: LoginRequest):
 
 
 @router.get("/me", response_model=dict)
-async def get_profile(user_id: str = Depends(lambda: "demo-user-id")):
+async def get_profile(
+    current_user: dict = Depends(get_current_user),
+    supabase: Client = Depends(get_supabase)
+):
     """
     현재 로그인한 사용자 프로필 조회
     
-    TODO: JWT 토큰 검증 미들웨어 추가 필요
+    JWT 토큰 검증된 사용자 ID 사용
     """
+    if not supabase:
+        raise HTTPException(status_code=503, detail={"ok": False, "error": {"message": "서비스를 사용할 수 없습니다."}})
+    user_id = current_user["id"]
     try:
         result = supabase.table("profiles").select("*").eq("id", user_id).single().execute()
         
@@ -317,13 +320,18 @@ async def get_profile(user_id: str = Depends(lambda: "demo-user-id")):
 @router.patch("/me", response_model=dict)
 async def update_profile(
     body: UpdateProfileRequest,
-    user_id: str = Depends(lambda: "demo-user-id")
+    current_user: dict = Depends(get_current_user),
+    supabase: Client = Depends(get_supabase)
 ):
     """
     프로필 수정
     
     - 이름, 연령대, 관심사 업데이트
+    - JWT 토큰 검증된 사용자 ID 사용
     """
+    if not supabase:
+        raise HTTPException(status_code=503, detail={"ok": False, "error": {"message": "서비스를 사용할 수 없습니다."}})
+    user_id = current_user["id"]
     try:
         # 업데이트할 필드만 추출
         update_data = {}

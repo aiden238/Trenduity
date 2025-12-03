@@ -11,7 +11,8 @@ export * from './components/Button';
 export * from './components/Card';
 export * from './components/SectionHeader';
 export * from './components/Spinner';
-export * from './components/Toast';
+// export * from './components/Toast';  // ToastType 중복으로 주석 처리 (tokens/toast에서 export)
+export { Toast } from './components/Toast';  // Toast 컴포넌트만 export
 export * from './components/EmptyState';
 export * from './components/ErrorState';
 export * from './components/GradientCard';

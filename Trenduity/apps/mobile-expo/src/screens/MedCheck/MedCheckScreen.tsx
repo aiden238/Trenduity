@@ -4,6 +4,14 @@ import { useA11y } from '../../contexts/A11yContext';
 import { useMedStatus, useCreateMedCheck } from '../../hooks/useMedCheck';
 
 export const MedCheckScreen = () => {
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>복약체크 화면</Text>
+    </View>
+  );
+};
+
+const oldMedCheckScreen = () => {
   const { spacing, buttonHeight, fontSizes } = useA11y();
 
   const { data: status, isLoading, error } = useMedStatus();

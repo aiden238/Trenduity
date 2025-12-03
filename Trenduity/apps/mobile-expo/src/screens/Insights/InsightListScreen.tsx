@@ -22,6 +22,14 @@ const TOPICS = [
  * 인사이트 목록 화면
  */
 export const InsightListScreen = () => {
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>인사이트 화면</Text>
+    </View>
+  );
+};
+
+const oldInsightListScreen = () => {
   const [selectedTopic, setSelectedTopic] = useState<string | undefined>();
   const [range, setRange] = useState<'weekly' | 'monthly'>('weekly');
   

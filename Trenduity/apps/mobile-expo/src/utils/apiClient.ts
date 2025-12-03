@@ -1,5 +1,4 @@
 import axios, { AxiosInstance } from 'axios';
-import Constants from 'expo-constants';
 
 /**
  * BFF API 클라이언트
@@ -8,7 +7,7 @@ import Constants from 'expo-constants';
  * Authorization 헤더는 각 요청 시 추가 필요
  */
 
-const BFF_API_URL = Constants.expoConfig?.extra?.BFF_API_URL || 'http://localhost:8000';
+const BFF_API_URL = process.env.EXPO_PUBLIC_BFF_API_URL || 'http://localhost:8000';
 
 export const apiClient: AxiosInstance = axios.create({
   baseURL: BFF_API_URL,

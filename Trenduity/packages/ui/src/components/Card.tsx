@@ -21,10 +21,10 @@ export const Card: React.FC<CardProps> = ({
   const tokens = getA11yTokens(mode);
 
   const cardStyle: ViewStyle = {
-    backgroundColor: tokens.colors.background.primary,
+    backgroundColor: tokens.colors.neutral.background,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: tokens.colors.border,
+    borderColor: tokens.colors.neutral.border,
     padding: tokens.spacing.md,
   };
 

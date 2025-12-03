@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated, TouchableOpacity } from 'react-native';
-import { COLORS } from '../tokens/colors';
+import { COLORS, SHADOWS } from '../tokens/colors';
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info';
 
@@ -70,18 +70,32 @@ export const Toast: React.FC<ToastProps> = ({ toast, onClose, isDark }) => {
   };
 
   const getBackgroundColor = () => {
-    const baseColors = isDark ? COLORS.dark.background : COLORS.semantic;
-    switch (toast.type) {
-      case 'success':
-        return baseColors.success;
-      case 'error':
-        return baseColors.error;
-      case 'warning':
-        return baseColors.warning;
-      case 'info':
-        return COLORS.primary.blue[600];
-      default:
-        return COLORS.neutral.gray[800];
+    if (isDark) {
+      switch (toast.type) {
+        case 'success':
+          return COLORS.dark.status.success;
+        case 'error':
+          return COLORS.dark.status.error;
+        case 'warning':
+          return COLORS.dark.status.warning;
+        case 'info':
+          return COLORS.dark.status.info;
+        default:
+          return COLORS.dark.background.secondary;
+      }
+    } else {
+      switch (toast.type) {
+        case 'success':
+          return COLORS.status.success;
+        case 'error':
+          return COLORS.status.error;
+        case 'warning':
+          return COLORS.status.warning;
+        case 'info':
+          return COLORS.status.info;
+        default:
+          return COLORS.neutral.text.secondary;
+      }
     }
   };
 
@@ -133,7 +147,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginVertical: 8,
     borderRadius: 12,
-    ...COLORS.shadows.medium,
+    ...SHADOWS.md,
   },
   content: {
     flexDirection: 'row',

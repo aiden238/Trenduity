@@ -3,6 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "description": "50-70대 AI 학습 앱 - MVP",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
   "scripts": {
     "dev": "echo 'Run dev servers - see scripts/dev.sh'",
     "lint": "eslint . --ext .ts,.tsx,.js,.jsx",

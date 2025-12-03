@@ -5,6 +5,11 @@
     "version": "0.1.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
+    "sdkVersion": "54.0.0",
+    "newArchEnabled": false,
+    "extra": {
+      "BFF_API_URL": "http://localhost:8000"
+    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.seniorlearning.app"

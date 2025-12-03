@@ -41,38 +41,12 @@ Trenduity/
 
 ## 🏛️ 핵심 아키텍처 결정 (변경 금지)
 
-### ADR-001: 왜 BFF 패턴인가?
-**결정**: 모든 쓰기 작업은 BFF를 경유해야 함  
-**이유**: 
-1. **보안**: 클라이언트에 `service_role` 키 노출 방지 (RLS 우회 권한)
-2. **일관성**: 게임화 로직 중앙 집중 (포인트/배지/스트릭 계산)
-3. **복잡성**: 트랜잭션 처리 (카드 완료 + 포인트 부여 + 배지 확인 + 감사 로그)
-4. **검증**: 비즈니스 규칙 강제 (하루 1카드, 중복 체크 방지 등)
+**상세 내용**: `.github/ADR.md` 참조
 
-**대안 검토**: Direct Supabase 쓰기 → RLS만으로는 게임화 로직 불가능  
-**변경 비용**: 극히 높음 (전체 보안 모델 및 비즈니스 로직 재설계)
-
-### ADR-002: 왜 3단계 A11y 모드인가?
-**결정**: Normal/Easy/Ultra 고정 (슬라이더 방식 아님)  
-**이유**: 
-1. **사용자 차이**: 50대(일반) vs 60대(쉬움) vs 70대(초대형)의 시력/손떨림 격차
-2. **터치 영역**: 단순 폰트 크기 조절로는 버튼 터치 문제 해결 안 됨
-3. **인지 부담**: 슬라이더는 오히려 시니어에게 복잡함 (선택 피로)
-4. **테스트 결과**: 사용자 테스트에서 3단계가 최적으로 검증됨
-
-**대안 검토**: 연속 슬라이더, 5단계 모드 → 인지 부담 증가  
-**변경 비용**: 중간 (UI 토큰 재설계, 컴포넌트 수정 필요)
-
-### ADR-003: 왜 Envelope 패턴인가?
-**결정**: 모든 API 응답은 `{ ok: boolean, data?: T, error?: E }` 형식  
-**이유**: 
-1. **일관성**: 클라이언트가 단일 패턴으로 성공/실패 처리
-2. **타입 안전**: TypeScript에서 discriminated union으로 타입 좁히기
-3. **에러 상세**: HTTP 상태코드 외에 구조화된 에러 정보 제공
-4. **한국어 메시지**: error.message에 시니어가 이해 가능한 한국어 포함
-
-**대안 검토**: 표준 HTTP 상태코드만 사용 → 세밀한 에러 핸들링 어려움  
-**변경 비용**: 낮음 (초기 설계 단계에서 결정됨)
+### 요약
+- **ADR-001**: 모든 쓰기 작업은 BFF 경유 (보안, 게임화 로직 중앙 집중)
+- **ADR-002**: 3단계 A11y 모드 (Normal/Easy/Ultra, 시니어 UX 최적화)
+- **ADR-003**: Envelope 패턴 (`{ ok, data?, error? }`, 일관성과 타입 안전성)
 
 ## ⚠️ 흔한 실수와 안티패턴 (반드시 피할 것)
 
@@ -269,10 +243,36 @@ function MyButton({ onPress }) {
 
 ## 🔗 자주 참조할 문서
 
+### 📚 기획 및 설계
 - **프로젝트 개요**: `README.md` (루트)
 - **전체 아키텍처**: `docs/PLAN/01-2-architecture-overview.md`
 - **구현 규칙**: `docs/IMPLEMENT/01-implementation-rules.md`
 - **워크스페이스 설정**: `docs/SCAFFOLD/01-workspace-setup.md`
+
+### 🔴 이슈 및 수정 사항
+- **이슈 트래커**: `docs/ISSUES/README.md`
+- **백엔드 이슈**: `docs/ISSUES/BACKEND_ISSUES.md`
+- **프론트엔드 이슈**: `docs/ISSUES/FRONTEND_ISSUES.md`
+- **수정 체크리스트**: `docs/ISSUES/FIX_CHECKLIST.md`
+
+### 🟢 설치 및 배포
+- **Python/Docker 설치**: `docs/SETUP/02-python-docker-setup.md`
+- **배포 가이드**: `docs/SETUP/03-deployment-setup.md`
+
+### 🟡 작업 세션 관리
+- **세션 관리**: `docs/WORK/README.md`
+- **세션 재개**: `docs/WORK/NEXT_SESSION_RESUME.md`
+- **과거 세션**: `docs/WORK/ARCHIVE/`
+
+### 📘 참조 문서 (DOCS/)
+- **문서 인덱스**: `docs/DOCS/index.md`
+- **Root README 작성법**: `docs/DOCS/01-root-readme-guide.md`
+- **아키텍처 문서**: `docs/DOCS/02-architecture-doc.md`
+- **API 레퍼런스**: `docs/DOCS/03-api-reference.md`
+- **UX/A11y 가이드**: `docs/DOCS/04-ux-a11y-notes.md`
+- **운영 가이드**: `docs/DOCS/05-operations-future.md`
+
+### 🛠️ 코드 및 스크립트
 - **시드 데이터**: `Trenduity/scripts/seed_data.py`
 - **API 엔드포인트**: `Trenduity/services/bff-fastapi/app/main.py`
 
@@ -307,57 +307,25 @@ function MyButton({ onPress }) {
 3. A11y 모드 전환 UI/UX 개선
 4. 시드 데이터로 전체 플로우 검증
 
-## 💡 프로젝트 특화 패턴
+## 💡 핵심 패턴 & 진입점
 
-### 에러 처리 (BFF)
-```python
-# Envelope 패턴 - 모든 API 응답
-{ "ok": true, "data": {...} }          # 성공
-{ "ok": false, "error": {...} }        # 실패
-
-# 한국어 에러 메시지 필수
-"카드를 찾을 수 없어요."  # ✅
-"Card not found"          # ❌
-```
-
-### 게임화 로직 (중앙 집중)
-```python
-# BFF의 GamificationService가 모든 포인트/배지 처리
-# services/bff-fastapi/app/services/gamification.py
-POINTS = {
-    "card_complete": 5,
-    "quiz_correct": 2,
-    "daily_streak_bonus": 3,
-}
-```
-
-### Supabase RLS 패턴
-```sql
--- 읽기: 사용자 자신의 데이터만
-CREATE POLICY "Users see own cards"
-ON cards FOR SELECT
-USING (auth.uid() = user_id);
-
--- 쓰기: BFF만 가능 (클라이언트 차단)
-CREATE POLICY "No direct updates"
-ON cards FOR UPDATE
-USING (false);
-```
-
-## 🔍 코드 탐색 팁
-
-### 새 기능 추가 시 체크리스트
-1. `docs/IMPLEMENT/` 디렉터리에서 관련 가이드 확인
-2. 기존 유사 엔드포인트 참조 (`services/bff-fastapi/app/routers/`)
-3. 공유 타입 확인 (`packages/types/src/`)
-4. A11y 토큰 적용 (`packages/ui/src/tokens/`)
-5. 에러 처리/로깅 패턴 적용
+### 필수 패턴
+- **Envelope 응답**: `{ ok: boolean, data?: T, error?: E }`
+- **한국어 에러**: "카드를 찾을 수 없어요." (영어 금지)
+- **게임화**: BFF `GamificationService`에서 중앙 처리
+- **RLS**: 읽기만 클라이언트, 쓰기는 BFF만
 
 ### 주요 진입점
-- **BFF API**: `services/bff-fastapi/app/main.py`
-- **모바일 루트**: `apps/mobile-expo/App.tsx`
-- **웹 루트**: `apps/web-next/app/page.tsx`
-- **DB 스키마**: `scripts/supabase_schema.sql`
+- BFF: `services/bff-fastapi/app/main.py`
+- Mobile: `apps/mobile-expo/App.tsx`
+- Web: `apps/web-next/app/page.tsx`
+- DB: `scripts/supabase_schema.sql`
+
+### 새 기능 추가 시
+1. `docs/IMPLEMENT/` 가이드 확인
+2. 유사 엔드포인트 참조 (`services/bff-fastapi/app/routers/`)
+3. 공유 타입 확인 (`packages/types/src/`)
+4. A11y 토큰 적용 (`packages/ui/src/tokens/`)
 
 ## 🔄 새 세션 시작 시 필수 체크리스트
 
@@ -418,470 +386,68 @@ cd services\bff-fastapi
 pip install -r requirements.txt
 ```
 
-## 🎮 자주 쓰는 명령어 (복사해서 실행)
+## 🎮 빠른 명령어
 
-### 문제: "BFF가 실행 안 돼요"
-```powershell
-cd c:\AIDEN_PROJECT\Trenduity\Trenduity\services\bff-fastapi
-if (!(Test-Path venv)) { python -m venv venv }
-.\venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-uvicorn app.main:app --reload --port 8000
-```
+자주 사용하는 PowerShell 명령어는 별도 파일 참조:
+- **`.github/QUICK_COMMANDS.md`**: BFF 실행, 타입 체크, 환경 확인, 포맷/린트 등
 
-### 문제: "타입 에러가 나요"
-```powershell
-cd c:\AIDEN_PROJECT\Trenduity\Trenduity
-npm run typecheck
-# 특정 앱만: 
-cd apps\mobile-expo; npm run typecheck
-cd apps\web-next; npm run typecheck
-```
+## 📋 코드 템플릿
 
-### 문제: "Supabase 연결 안 돼요"
-```powershell
-# .env 파일 확인
-Get-Content c:\AIDEN_PROJECT\Trenduity\Trenduity\.env | Select-String "SUPABASE"
-# 없으면: Copy-Item .env.example .env 후 키 입력 필요
-```
-
-### 문제: "시드 데이터 넣고 싶어요"
-```powershell
-cd c:\AIDEN_PROJECT\Trenduity\Trenduity\scripts
-python seed_data.py
-```
-
-### 문제: "포맷/린트 검사"
-```powershell
-# TypeScript/JavaScript
-cd c:\AIDEN_PROJECT\Trenduity\Trenduity
-npm run lint
-npm run format:check
-
-# Python (BFF)
-cd services\bff-fastapi
-black --check app/
-ruff app/
-```
-
-## 📋 코드 템플릿 (복사해서 사용)
-
-### 새 BFF 엔드포인트 추가
-```python
-# services/bff-fastapi/app/routers/new_feature.py
-from fastapi import APIRouter, Depends, HTTPException
-from app.core.deps import get_current_user
-from app.schemas.new_feature import NewFeatureRequest, NewFeatureResponse
-import logging
-
-router = APIRouter()
-logger = logging.getLogger(__name__)
-
-@router.post("/action", response_model=dict)
-async def do_action(
-    body: NewFeatureRequest,
-    user_id: str = Depends(get_current_user)
-):
-    try:
-        # 1. 비즈니스 로직
-        result = await service.process(body, user_id)
-        
-        # 2. Envelope 응답
-        return {"ok": True, "data": result}
-        
-    except ValueError as e:
-        logger.warning(f"Validation error: {e}", extra={"user_id": user_id})
-        raise HTTPException(
-            status_code=400,
-            detail={"ok": False, "error": {"message": str(e)}}
-        )
-    except Exception as e:
-        logger.error(f"Action failed: {e}", extra={"user_id": user_id})
-        raise HTTPException(
-            status_code=500,
-            detail={"ok": False, "error": {"message": "오류가 발생했어요. 잠시 후 다시 시도해 주세요."}}
-        )
-```
-
-### 새 Mobile 훅 추가
-```typescript
-// apps/mobile-expo/src/hooks/useNewFeature.ts
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiClient } from '@/utils/apiClient';
-
-interface NewFeatureData {
-  // 타입 정의
-}
-
-interface NewFeatureParams {
-  // 요청 파라미터
-}
-
-export function useNewFeature() {
-  const queryClient = useQueryClient();
-
-  const query = useQuery({
-    queryKey: ['newFeature'],
-    queryFn: async () => {
-      const { data } = await apiClient.get<{ ok: boolean; data: NewFeatureData }>(
-        '/v1/new-feature'
-      );
-      if (!data.ok) throw new Error(data.error?.message);
-      return data.data;
-    },
-  });
-
-  const mutation = useMutation({
-    mutationFn: async (params: NewFeatureParams) => {
-      const { data } = await apiClient.post('/v1/new-feature/action', params);
-      if (!data.ok) throw new Error(data.error?.message);
-      return data.data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['newFeature'] });
-    },
-  });
-
-  return { 
-    ...query, 
-    doAction: mutation.mutate,
-    isDoingAction: mutation.isPending
-  };
-}
-```
-
-### A11y 준수 컴포넌트
-```typescript
-// apps/mobile-expo/src/components/NewComponent.tsx
-import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
-import { useA11y } from '@/contexts/A11yContext';
-
-interface NewComponentProps {
-  title: string;
-  onPress: () => void;
-}
-
-export function NewComponent({ title, onPress }: NewComponentProps) {
-  const { fontSizes, buttonHeight, spacing } = useA11y();
-
-  return (
-    <View style={{ padding: spacing }}>
-      <Text style={{ fontSize: fontSizes.heading1, marginBottom: spacing }}>
-        {title}
-      </Text>
-      <TouchableOpacity
-        onPress={onPress}
-        style={{ 
-          height: buttonHeight, 
-          justifyContent: 'center',
-          alignItems: 'center',
-          backgroundColor: '#007AFF',
-          borderRadius: 8
-        }}
-        accessibilityRole="button"
-        accessibilityLabel={`${title} 버튼`}
-        accessibilityHint="버튼을 누르면 동작을 실행합니다"
-      >
-        <Text style={{ fontSize: fontSizes.body, color: 'white' }}>
-          실행
-        </Text>
-      </TouchableOpacity>
-    </View>
-  );
-}
-```
-
-### 새 Pydantic 스키마
-```python
-# services/bff-fastapi/app/schemas/new_feature.py
-from pydantic import BaseModel, Field
-from typing import Optional
-from datetime import datetime
-
-class NewFeatureRequest(BaseModel):
-    """새 기능 요청 DTO"""
-    field1: str = Field(..., min_length=1, max_length=100, description="필드 설명")
-    field2: Optional[int] = Field(None, ge=0, description="선택적 필드")
-
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "field1": "예시 값",
-                "field2": 42
-            }
-        }
-
-class NewFeatureResponse(BaseModel):
-    """새 기능 응답 DTO"""
-    id: str
-    created_at: datetime
-    result: str
-
-    class Config:
-        from_attributes = True
-```
+자주 사용하는 코드 템플릿은 별도 파일 참조:
+- **`.github/CODE_TEMPLATES.md`**: BFF 엔드포인트, Mobile 훅, A11y 컴포넌트, Pydantic 스키마
 
 ## 🎓 학습 경로
 
-새로운 개발자라면:
+### 새로운 개발자
 1. `README.md` (프로젝트 소개)
 2. `docs/PLAN/01-project-overview.md` (요구사항)
 3. `docs/PLAN/01-2-architecture-overview.md` (아키텍처)
 4. `docs/IMPLEMENT/01-implementation-rules.md` (구현 규칙)
 5. `services/bff-fastapi/app/routers/cards.py` (코드 예시)
 
-## 📊 응답 품질 가이드 (AI 에이전트용)
+### 문제 해결이 필요한 개발자
+1. `docs/ISSUES/README.md` (이슈 현황)
+2. `docs/ISSUES/BACKEND_ISSUES.md` 또는 `FRONTEND_ISSUES.md`
+3. `docs/ISSUES/FIX_CHECKLIST.md` (검증 체크리스트)
 
-**모든 사용자 요청에 대한 응답 시 반드시 이해도를 명시하세요:**
+### 배포하려는 개발자
+1. `docs/SETUP/03-deployment-setup.md` (Render 배포)
+2. `docs/ISSUES/FIX_CHECKLIST.md` (배포 전 체크리스트)
 
-### 이해도 평가 기준
+### 문서 작성자
+1. `docs/DOCS/index.md` (문서화 개요)
+2. `docs/DOCS/01-root-readme-guide.md` (README 작성)
+3. `docs/DOCS/02-architecture-doc.md` (아키텍처 문서)
+4. `docs/DOCS/03-api-reference.md` (API 레퍼런스)
 
-- **90% 이상**: 요청이 명확하고, 필요한 모든 컨텍스트 확보, 즉시 실행 가능
-- **70-89%**: 요청은 이해했으나 일부 컨텍스트 불명확, 실행 전 확인 필요
-- **50-69%**: 요청의 의도는 파악했으나 구체적 요구사항 모호, 추가 정보 필요
-- **50% 미만**: 요청이 불명확하거나 프로젝트 범위 벗어남, 명확화 필수
- 
-### 응답 형식
+## 📊 응답 품질 원칙 (AI 에이전트용)
 
-#### 이해도 90% 이상
-```markdown
-**이해도: 95%**
+### 핵심 원칙
 
-[실행 가능한 답변 또는 코드]
+1. **요청 이해도 평가**
+   - 90% 이상: 즉시 실행
+   - 70-89%: 확인 후 실행
+   - 70% 미만: 추가 정보 요청
 
-**이해도를 100%로 높이려면:**
-- [선택적 추가 정보 1]
-- [선택적 추가 정보 2]
-```
+2. **응답 전 체크리스트**
+   - [ ] 대상 명확? (Mobile/Web/BFF)
+   - [ ] 파일 경로 특정 가능?
+   - [ ] ADR/안티패턴 검토?
+   - [ ] 제약사항 준수? (diff-first, 보안, 타입)
 
-#### 이해도 70-89%
-```markdown
-**이해도: 80%**
-
-[현재 이해를 바탕으로 한 답변]
-
-**이해도를 높이기 위해 확인이 필요합니다:**
-- [ ] [확인 사항 1 - 예: "카드 완료 시 퀴즈도 함께 제출하나요?"]
-- [ ] [확인 사항 2 - 예: "BFF 라우터 추가인가요, Mobile 훅 수정인가요?"]
-
-**임시 가정:**
-- [가정 1]
-- [가정 2]
-```
-
-#### 이해도 50-69%
-```markdown
-**이해도: 60%**
-
-**이해한 내용:**
-- [파악한 의도 1]
-- [파악한 의도 2]
-
-**명확히 해주세요:**
-1. [질문 1 - 구체적]
-2. [질문 2 - 구체적]
-3. [질문 3 - 구체적]
-
-**추정되는 시나리오:**
-- 시나리오 A: [설명]
-- 시나리오 B: [설명]
-
-어느 것에 가까운가요?
-```
-
-#### 이해도 50% 미만
-```markdown
-**이해도: 30%**
-
-**현재 불명확한 사항:**
-- [불명확 1]
-- [불명확 2]
-
-**도움을 드리기 위해 다음을 알려주세요:**
-1. [필수 정보 1]
-2. [필수 정보 2]
-3. [필수 정보 3]
-
-**관련 문서:**
-- `docs/[관련 문서 경로]`
-```
-
-### 실제 예시
-
-#### 예시 1: 높은 이해도
-```
-사용자: "카드 완료 엔드포인트에 로깅 추가해줘"
-
-AI: 
-**이해도: 95%**
-
-`services/bff-fastapi/app/routers/cards.py`의 `complete_card` 함수에 로깅을 추가하겠습니다.
-
-[코드 변경]
-
-**이해도를 100%로 높이려면:**
-- 로그 레벨 지정 (INFO vs DEBUG)
-- 로그에 포함할 추가 필드 명시 (예: quiz_result)
-```
-
-#### 예시 2: 중간 이해도
-```
-사용자: "가족 대시보드에 활동 표시해줘"
-
-AI:
-**이해도: 75%**
-
-웹 대시보드(`apps/web-next/app/page.tsx`)에 가족 멤버의 활동을 표시하는 기능으로 이해했습니다.
-
-**이해도를 높이기 위해 확인이 필요합니다:**
-- [ ] "활동"의 범위: 카드 완료만? 복약 체크 포함?
-- [ ] 표시 기간: 오늘? 최근 7일? 월간?
-- [ ] 데이터 소스: BFF API 신규? Supabase Direct?
-
-**임시 가정:**
-- 최근 7일 카드 완료 횟수 표시
-- BFF `/v1/family/members` 엔드포인트 사용
-```
-
-#### 예시 3: 낮은 이해도
-```
-사용자: "앱 개선해줘"
-
-AI:
-**이해도: 20%**
-
-**현재 불명확한 사항:**
-- 어떤 앱? (Mobile? Web?)
-- 어떤 측면? (성능? UI? 기능?)
-- 우선순위는?
-
-**도움을 드리기 위해 다음을 알려주세요:**
-1. 개선하고 싶은 구체적인 화면 또는 기능
-2. 현재 문제점 (예: "카드 로딩이 느림")
-3. 원하는 결과 (예: "로딩 시간 2초 이내")
-
-**현재 구현 상태 참고:**
-- `📍 현재 구현 상태` 섹션 확인
-```
-
-### 이해도 체크리스트 (AI 에이전트용)
-
-응답 전 자체 점검:
-
-- [ ] 요청의 대상 명확? (Mobile/Web/BFF)
-- [ ] 파일 경로 특정 가능?
-- [ ] 필요한 컨텍스트 확보? (현재 구현 상태, ADR, 안티패턴)
-- [ ] 제약사항 검토? (diff-first, 보안, 타입 안전성)
-- [ ] 템플릿 적용 가능?
-
-**점수:** (체크 항목 수 / 5) × 100 = 이해도 %
-
-## 🎫 토큰 관리 지침 (필수)
-
-### 모든 응답 시 토큰 상태 명시
-
-**필수 형식** (응답 최상단 또는 최하단):
-```markdown
-**현재 남은 토큰**: [사용된 토큰] / 1,000,000 ([백분율]% 남음)
-```
-
-**예시**:
-```markdown
-**현재 남은 토큰**: 850,000 / 1,000,000 (85% 남음)
-```
-
-### 토큰 임계값 경고
-
-#### 🟢 안전 (70% 이상 남음)
-- 정상 작업 진행
-- 복잡한 분석/생성 작업 가능
-
-#### 🟡 주의 (30-70% 남음)
-- 응답에 경고 표시:
-  ```markdown
-  ⚠️ **토큰 주의**: 현재 50% 사용 중. 간결한 응답 권장.
-  ```
-- 불필요한 예시 축소
-- 코드 생성 시 주석 최소화
-
-#### 🔴 위험 (70% 이상 사용, 30% 미만 남음)
-- 응답에 긴급 경고:
-  ```markdown
-  🚨 **토큰 부족 경고**: 현재 75% 사용. 작업 중단 또는 새 세션 권장.
-  ```
-- 즉시 작업 중단 제안
-- 현재 진행 상태 요약
-- 다음 세션 재개 가이드 제공
-
-#### 🛑 임계 (90% 이상 사용)
-- 더 이상 새 작업 시작 금지
-- 즉시 중단 메시지:
-  ```markdown
-  🛑 **토큰 초과 임박**: 현재 92% 사용. 작업을 즉시 중단합니다.
-  
-  **완료된 작업:**
-  - [작업 1]
-  - [작업 2]
-  
-  **미완료 작업:**
-  - [작업 3] (다음 세션에서 재개)
-  
-  **재개 방법:**
-  1. 새 대화 시작
-  2. "이전 작업 계속: [작업 3]" 요청
-  3. 이 대화 링크 참조: [링크]
-  ```
-
-### 토큰 절약 전략
-
-#### 파일 읽기
-- `read_file`에 `limit`, `offset` 적극 활용
-- 전체 파일이 아닌 필요한 섹션만 조회
-- 반복 읽기 전 캐시된 정보 재활용
-
-#### 검색 작업
-- `grep_search`에 `maxResults` 제한 (기본값 사용 금지)
-- 정규식 최적화로 불필요한 매치 제거
-- 여러 검색보다 하나의 포괄적 패턴 사용
-
-#### 코드 생성
-- `multi_replace_string_in_file` 우선 사용 (병렬 처리)
-- 템플릿 재사용 (새 작성 최소화)
-- 주석은 필수 사항만 (장황한 설명 제거)
-
-#### 응답 작성
-- 중복 설명 제거
-- 테이블/리스트로 정보 압축
-- 예시는 1-2개로 제한
-
-### 토큰 카운팅 공식 (추정)
-
-```
-토큰 ≈ (문자 수 / 4) + (도구 호출 오버헤드 × 100)
-```
-
-**예시 계산**:
-- 긴 파일 읽기 (2000줄): ~1000 토큰
-- 복잡한 코드 생성 (500줄): ~500 토큰
-- grep 검색 (50 결과): ~300 토큰
-- 일반 응답 (1000자): ~250 토큰
-
-### 세션 재개 프로토콜
-
-토큰 부족으로 중단 시 새 세션에서 사용할 재개 명령:
-
-```markdown
-**이전 세션 요약**:
-- 작업: [작업명]
-- 완료: [파일1], [파일2]
-- 미완료: [파일3] (70% 진행)
-- 다음 단계: [구체적 작업]
-- 참고: 이전 대화 [링크]
-```
+3. **응답 형식**
+   - 간결하고 명확하게
+   - 불확실하면 명시하고 질문
+   - 가정을 세웠다면 명확히 표시
 
 ---
 
-**최종 업데이트**: 2025년 11월 17일  
-**문서 버전**: 5.0 (토큰 관리 지침 추가)  
+**최종 업데이트**: 2025년 12월 2일  
+**문서 버전**: 6.0 (최적화 완료 - 929줄 → 500줄)  
 **상태**: SCAFFOLD 완료, IMPLEMENT 진행 중 (65%)
+
+## 🔗 추가 참조 문서
+
+- **코드 템플릿**: `.github/CODE_TEMPLATES.md` - BFF/Mobile/A11y/Pydantic 템플릿
+- **빠른 명령어**: `.github/QUICK_COMMANDS.md` - 자주 쓰는 PowerShell 명령어
+- **아키텍처 결정**: `.github/ADR.md` - ADR-001, ADR-002, ADR-003

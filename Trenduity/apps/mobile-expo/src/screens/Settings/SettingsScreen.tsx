@@ -49,6 +49,14 @@ const THEME_MODES = [
  * 접근성 모드 선택 및 테마 선택 UI 제공
  */
 export const SettingsScreen = () => {
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>설정 화면</Text>
+    </View>
+  );
+};
+
+const oldSettingsScreen = () => {
   const { mode, setMode, spacing, buttonHeight, fontSizes, scaleAnim } = useA11y();
   const { themeMode, activeTheme, setThemeMode, colors } = useTheme();
   const [showScamCheck, setShowScamCheck] = useState(false);
