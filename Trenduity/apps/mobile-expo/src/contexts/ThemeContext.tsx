@@ -10,6 +10,7 @@ export type ActiveTheme = 'light' | 'dark';
 interface ThemeContextValue {
   themeMode: ThemeMode;
   activeTheme: ActiveTheme;
+  isDark: boolean;
   setThemeMode: (mode: ThemeMode) => void;
   colors: typeof COLORS & { dark: typeof COLORS.dark };
 }
@@ -62,6 +63,7 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       value={{
         themeMode,
         activeTheme,
+        isDark: activeTheme === 'dark',
         setThemeMode,
         colors: COLORS,
       }}

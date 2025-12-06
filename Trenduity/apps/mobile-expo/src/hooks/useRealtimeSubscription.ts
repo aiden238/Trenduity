@@ -9,6 +9,12 @@ import { supabase } from '../config/supabase';
  * 컴포넌트 언마운트 시 자동으로 구독 해제
  */
 
+export interface RealtimePayload {
+  new: Record<string, any>;
+  old: Record<string, any>;
+  eventType: 'INSERT' | 'UPDATE' | 'DELETE';
+}
+
 export interface RealtimeConfig {
   /** 구독할 테이블 이름 */
   table: string;
@@ -17,7 +23,7 @@ export interface RealtimeConfig {
   /** 필터 조건 (예: eq.user_id.${userId}) */
   filter?: string;
   /** 데이터 수신 시 콜백 */
-  callback: (payload: any) => void;
+  callback: (payload: RealtimePayload) => void;
 }
 
 export const useRealtimeSubscription = (configs: RealtimeConfig[]) => {
@@ -33,14 +39,14 @@ export const useRealtimeSubscription = (configs: RealtimeConfig[]) => {
     // 각 config에 대해 구독 설정
     configs.forEach(({ table, event, filter, callback }) => {
       channel.on(
-        'postgres_changes',
+        'postgres_changes' as any,
         {
           event,
           schema: 'public',
           table,
           filter,
         },
-        (payload) => {
+        (payload: RealtimePayload) => {
           console.log(`[Realtime] ${table} ${event}:`, payload);
           callback(payload);
         }

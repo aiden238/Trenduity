@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import apiClient from '../utils/apiClient';
+import { apiClient } from '../utils/apiClient';
 
 export interface DayStatus {
   date: string;

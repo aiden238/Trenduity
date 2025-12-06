@@ -11,8 +11,16 @@ interface A11yContextValue {
     body: number;
     heading2: number;
     heading1: number;
+    sm: number;
+    md: number;
+    lg: number;
   };
-  spacing: number;
+  spacing: {
+    sm: number;
+    md: number;
+    lg: number;
+    xl: number;
+  };
   buttonHeight: number;
   iconSize: number;
   scaleAnim: Animated.Value; // 애니메이션 값

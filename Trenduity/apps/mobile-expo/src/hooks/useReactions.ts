@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import apiClient from '../utils/apiClient';
+import { apiClient } from '../utils/apiClient';
 
 export type ReactionKind = 'cheer' | 'useful' | 'like';
 export type TargetType = 'card' | 'insight' | 'course' | 'qna_post';

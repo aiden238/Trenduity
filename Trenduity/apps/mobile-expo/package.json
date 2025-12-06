@@ -11,11 +11,6 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@gluestack-style/animation-resolver": "^1.0.4",
-    "@gluestack-style/react": "^1.0.57",
-    "@gluestack-ui/config": "^1.1.20",
-    "@gluestack-ui/themed": "^1.1.73",
-    "@legendapp/motion": "^2.5.3",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-navigation/bottom-tabs": "^6.5.8",
     "@react-navigation/native": "^6.1.7",
