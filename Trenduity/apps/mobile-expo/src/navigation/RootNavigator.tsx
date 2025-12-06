@@ -5,6 +5,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { SplashScreen } from '../screens/Auth/SplashScreen';
 import { LoginScreen } from '../screens/Auth/LoginScreen';
 import { HomeAScreen } from '../screens/Home/HomeAScreen';
+import { AIChatScreen } from '../screens/Chat/AIChatScreen';
 // import { InsightListScreen } from '../screens/Insights/InsightListScreen';
 // import { CourseListScreen } from '../screens/Courses/CourseListScreen';
 // import { MedCheckScreen } from '../screens/MedCheck/MedCheckScreen';
@@ -75,6 +76,15 @@ export const RootNavigator = () => {
         <Stack.Screen 
           name="Main" 
           component={MainTabs} 
+        />
+        <Stack.Screen 
+          name="AIChat" 
+          component={AIChatScreen}
+          options={{ 
+            headerShown: true,
+            title: 'AI 채팅',
+            headerBackTitle: '뒤로'
+          }}
         />
       </Stack.Navigator>
     </NavigationContainer>
