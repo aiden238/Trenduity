@@ -110,18 +110,29 @@ const AUTH_TOKEN_KEY = '@trenduity/auth_token';
 const USER_KEY = '@trenduity/user';
 const ONBOARDING_KEY = '@trenduity/onboarding_complete';
 
-// BFF 서버 웜업 (콜드 스타트 방지)
+// BFF 서버 웜업 (콜드 스타트 방지) - 60초 타임아웃
 let bffWarmedUp = false;
-const warmUpBff = async () => {
+const warmUpBff = async (timeoutMs: number = 60000) => {
   if (bffWarmedUp) return;
   try {
-    console.log('[AuthContext] 🔥 Warming up BFF server...');
+    console.log('[AuthContext] 🔥 Warming up BFF server... (최대 60초)');
     const start = Date.now();
-    await fetch(`${BFF_URL}/health`, { method: 'GET' });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    
+    await fetch(`${BFF_URL}/health`, { 
+      method: 'GET',
+      signal: controller.signal 
+    });
+    clearTimeout(timeoutId);
     console.log('[AuthContext] ✅ BFF ready in', Date.now() - start, 'ms');
     bffWarmedUp = true;
-  } catch (error) {
-    console.log('[AuthContext] ⚠️ BFF warmup failed (will retry on login)');
+  } catch (error: any) {
+    if (error.name === 'AbortError') {
+      console.log('[AuthContext] ⚠️ BFF warmup timeout (서버가 깨어나는 중...)');
+    } else {
+      console.log('[AuthContext] ⚠️ BFF warmup failed:', error.message);
+    }
   }
 };
 
@@ -193,7 +204,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ email, password }),
-      }, 15000); // 15초 타임아웃 (웜업 후이므로 빠름)
+      }, 30000); // 30초 타임아웃 (콜드 스타트 대비)
 
       console.log('[AuthContext] 📡 Response in', Date.now() - start, 'ms, status:', response.status);
       const result = await response.json();
@@ -266,7 +277,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ email, password, name, phone }),
-      }, 15000); // 웜업 후이므로 15초면 충분
+      }, 30000); // 30초 타임아웃 (콜드 스타트 대비)
 
       const elapsed = Date.now() - startTime;
       console.log(`[AuthContext] ✅ 회원가입 응답 ${elapsed}ms`);
