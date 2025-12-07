@@ -110,6 +110,21 @@ const AUTH_TOKEN_KEY = '@trenduity/auth_token';
 const USER_KEY = '@trenduity/user';
 const ONBOARDING_KEY = '@trenduity/onboarding_complete';
 
+// BFF 서버 웜업 (콜드 스타트 방지)
+let bffWarmedUp = false;
+const warmUpBff = async () => {
+  if (bffWarmedUp) return;
+  try {
+    console.log('[AuthContext] 🔥 Warming up BFF server...');
+    const start = Date.now();
+    await fetch(`${BFF_URL}/health`, { method: 'GET' });
+    console.log('[AuthContext] ✅ BFF ready in', Date.now() - start, 'ms');
+    bffWarmedUp = true;
+  } catch (error) {
+    console.log('[AuthContext] ⚠️ BFF warmup failed (will retry on login)');
+  }
+};
+
 /**
  * AuthProvider 컴포넌트
  * 
@@ -120,9 +135,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isOnboardingComplete, setIsOnboardingComplete] = useState(false);
 
-  // 초기 로드: 저장된 토큰과 사용자 정보 복원
+  // 초기 로드: 저장된 토큰과 사용자 정보 복원 + BFF 웜업
   useEffect(() => {
     loadStoredAuth();
+    // 백그라운드에서 BFF 서버 웜업 (콜드 스타트 방지)
+    warmUpBff();
   }, []);
 
   const loadStoredAuth = async () => {
@@ -162,6 +179,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const login = async (email: string, password: string) => {
     try {
       console.log('[AuthContext] 🔐 Attempting login to:', BFF_URL);
+      const start = Date.now();
+
+      // BFF가 아직 웜업되지 않았다면 먼저 웜업
+      if (!bffWarmedUp) {
+        console.log('[AuthContext] 🔥 BFF not warmed up, warming...');
+        await warmUpBff();
+      }
 
       const response = await fetchWithTimeout(`${BFF_URL}/v1/auth/login`, {
         method: 'POST',
@@ -169,9 +193,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ email, password }),
-      }, 30000); // 30초 타임아웃
+      }, 15000); // 15초 타임아웃 (웜업 후이므로 빠름)
 
-      console.log('[AuthContext] 📡 Response status:', response.status);
+      console.log('[AuthContext] 📡 Response in', Date.now() - start, 'ms, status:', response.status);
       const result = await response.json();
       console.log('[AuthContext] 📦 Response:', { ok: result.ok, hasData: !!result.data });
 
@@ -190,8 +214,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       setUser(userData);
       setStatus('authenticated');
+      console.log('[AuthContext] ✅ Login successful in', Date.now() - start, 'ms');
     } catch (error: any) {
       console.error('[AuthContext] Login failed:', error);
+      // 네트워크 에러 처리
+      if (error.message?.includes('Network request failed') || error.message?.includes('fetch')) {
+        throw new Error('서버에 연결할 수 없습니다. 인터넷 연결을 확인해 주세요.');
+      }
+      // 타임아웃 에러
+      if (error.message?.includes('시간이 초과')) {
+        throw new Error('서버 응답이 늦어지고 있어요. 잠시 후 다시 시도해 주세요.');
+      }
       // 이미 Error 객체면 그대로 throw (메시지 보존)
       if (error instanceof Error) {
         throw error;
@@ -219,6 +252,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signup = async (email: string, password: string, name?: string, phone?: string) => {
     try {
       console.log('[AuthContext] 📝 Attempting signup to:', BFF_URL);
+      const startTime = Date.now();
+
+      // BFF 웜업 안됐으면 먼저 웜업
+      if (!bffWarmedUp) {
+        console.log('[AuthContext] ⏳ BFF 웜업 중...');
+        await warmUpBff();
+      }
 
       const response = await fetchWithTimeout(`${BFF_URL}/v1/auth/signup`, {
         method: 'POST',
@@ -226,7 +266,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ email, password, name, phone }),
-      }, 30000); // 30초 타임아웃
+      }, 15000); // 웜업 후이므로 15초면 충분
+
+      const elapsed = Date.now() - startTime;
+      console.log(`[AuthContext] ✅ 회원가입 응답 ${elapsed}ms`);
 
       const result = await response.json();
 
@@ -243,6 +286,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setStatus('authenticated');
     } catch (error: any) {
       console.error('[AuthContext] Signup failed:', error);
+      if (error.name === 'AbortError') {
+        throw new Error('서버 연결이 지연되고 있어요. 잠시 후 다시 시도해 주세요.');
+      }
       throw new Error(error.message || '회원가입에 실패했습니다. 다시 시도해 주세요.');
     }
   };
