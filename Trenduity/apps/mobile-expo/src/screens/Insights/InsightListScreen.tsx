@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Typography, Card, Button, Spinner, EmptyState, ErrorState, GradientCard, COLORS, SPACING, SHADOWS, RADIUS } from '@repo/ui';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { useA11y } from '../../contexts/A11yContext';
 import { useTheme } from '../../contexts/ThemeContext';
-import { useInsightList, useFollowingTopics } from '../../hooks/useInsights';
-import { useNavigation } from '@react-navigation/native';
+import { useInsightList } from '../../hooks/useInsights';
+import { COLORS } from '../../tokens/colors';
 
 /**
  * 주제 목록
@@ -22,259 +21,165 @@ const TOPICS = [
  * 인사이트 목록 화면
  */
 export const InsightListScreen = () => {
-  return (
-    <View style={styles.container}>
-      <Text style={styles.title}>인사이트 화면</Text>
-    </View>
-  );
-};
-
-const oldInsightListScreen = () => {
   const [selectedTopic, setSelectedTopic] = useState<string | undefined>();
   const [range, setRange] = useState<'weekly' | 'monthly'>('weekly');
+  const [refreshing, setRefreshing] = useState(false);
   
-  const { data: insights, isLoading, error } = useInsightList(selectedTopic, range);
-  const { data: followingTopics } = useFollowingTopics();
-  const { mode, spacing, fontSizes } = useA11y();
+  const { data: insights, isLoading, error, refetch } = useInsightList(selectedTopic, range);
+  const { fontSizes, spacing, buttonHeight } = useA11y();
   const { activeTheme, colors } = useTheme();
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   
   // 다크 모드 색상
-  const bgColor = activeTheme === 'dark' ? colors.dark.background.primary : colors.neutral.background;
-  const cardBg = activeTheme === 'dark' ? colors.dark.background.secondary : colors.neutral.surface;
-  
-  const handleInsightPress = (insightId: string) => {
-    navigation.navigate('InsightDetail' as never, { insightId } as never);
-  };
-  
-  // 로딩 상태
-  if (isLoading) {
-    return <Spinner size="large" color="#2196F3" />;
-  }
-  
-  // 에러 상태
-  if (error) {
-    return (
-      <ErrorState
-        message="인사이트를 불러올 수 없어요. 잠시 후 다시 시도해 주세요."
-      />
-    );
-  }
-  
-  return (
-    <View style={[styles.container, { backgroundColor: bgColor }]}>
-      {/* 그라디언트 헤더 */}
-      <LinearGradient
-        colors={COLORS.gradients.primary}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={{ paddingTop: spacing * 2, paddingBottom: spacing * 3 }}
-      >
-        <View style={{ paddingHorizontal: spacing * 2 }}>
-          <Typography
-            variant="heading1"
-            style={{
-              fontSize: fontSizes.heading1,
-              color: '#FFFFFF',
-              fontWeight: '700',
-            }}
-          >
-            💡 인사이트
-          </Typography>
-          <Typography
-            variant="body"
-            style={{
-              fontSize: fontSizes.body,
-              color: 'rgba(255, 255, 255, 0.9)',
-              marginTop: spacing / 2,
-            }}
-          >
-            최신 디지털 정보를 확인하세요
-          </Typography>
-        </View>
-      </LinearGradient>
+  const bgColor = activeTheme === 'dark' ? colors.dark.background.primary : '#F9FAFB';
+  const cardBg = activeTheme === 'dark' ? colors.dark.background.secondary : '#FFFFFF';
+  const textPrimary = activeTheme === 'dark' ? colors.dark.text.primary : '#000000';
+  const textSecondary = activeTheme === 'dark' ? colors.dark.text.secondary : '#6B7280';
 
-      {/* 주제 필터 */}
-      <View style={[styles.topicFilter, { paddingVertical: spacing, marginTop: -spacing * 2 }]}>
-        <FlatList
-          horizontal
-          data={TOPICS}
-          keyExtractor={(item) => item.key || 'all'}
-          showsHorizontalScrollIndicator={false}
-          renderItem={({ item }) => {
-            const isSelected = item.key === selectedTopic;
-            
-            return (
-              <TouchableOpacity
-                onPress={() => setSelectedTopic(item.key)}
-                style={[
-                  { marginHorizontal: spacing / 2, borderRadius: RADIUS.full, overflow: 'hidden' },
-                  !isSelected && SHADOWS.sm
-                ]}
-                accessibilityRole="button"
-                accessibilityLabel={`${item.label} 주제 필터`}
-                accessibilityHint="버튼을 누르면 해당 주제의 인사이트만 표시됩니다"
-                accessibilityState={{ selected: isSelected }}
-              >
-                {isSelected ? (
-                  <LinearGradient
-                    colors={COLORS.gradients.primary}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={[styles.topicChip]}
-                  >
-                    <Typography
-                      variant="body"
-                      mode={mode}
-                      style={{
-                        fontSize: fontSizes.body,
-                        color: '#FFFFFF',
-                        fontWeight: '600'
-                      }}
-                    >
-                      {item.icon} {item.label}
-                    </Typography>
-                  </LinearGradient>
-                ) : (
-                  <View style={[styles.topicChip, { backgroundColor: COLORS.neutral.surface }]}>
-                    <Typography
-                      variant="body"
-                      mode={mode}
-                      style={{
-                        fontSize: fontSizes.body,
-                        color: COLORS.neutral.text.secondary
-                      }}
-                    >
-                      {item.icon} {item.label}
-                    </Typography>
-                  </View>
-                )}
-              </TouchableOpacity>
-            );
-          }}
-        />
-      </View>
-      
-      {/* 기간 필터 */}
-      <View style={[styles.rangeFilter, { padding: spacing }]}>
-        <Button
-          mode={mode}
-          onPress={() => setRange('weekly')}
-          variant={range === 'weekly' ? 'primary' : 'outline'}
-          style={{ flex: 1, marginRight: spacing / 2 }}
-          accessibilityRole="button"
-          accessibilityLabel="최근 7일 인사이트 보기"
-          accessibilityHint="버튼을 누르면 최근 일주일 인사이트를 표시합니다"
-        >
-          최근 7일
-        </Button>
-        <Button
-          mode={mode}
-          onPress={() => setRange('monthly')}
-          variant={range === 'monthly' ? 'primary' : 'outline'}
-          style={{ flex: 1, marginLeft: spacing / 2 }}
-          accessibilityRole="button"
-          accessibilityLabel="최근 30일 인사이트 보기"
-          accessibilityHint="버튼을 누르면 최근 한 달 인사이트를 표시합니다"
-        >
-          최근 30일
-        </Button>
-      </View>
-      
-      {/* 인사이트 목록 */}
+  const handleInsightPress = (insightId: string) => {
+    navigation.navigate('InsightDetail', { insightId });
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await refetch();
+    setRefreshing(false);
+  };
+
+  const renderTopicFilter = () => (
+    <View style={[styles.topicFilter, { paddingVertical: spacing.sm }]}>
       <FlatList
-        data={insights}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={{ padding: spacing }}
+        horizontal
+        data={TOPICS}
+        keyExtractor={(item) => item.key || 'all'}
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ paddingHorizontal: spacing.md }}
         renderItem={({ item }) => {
-          // 주제 정보
-          const topicInfo = TOPICS.find(t => t.key === item.topic);
-          
+          const isSelected = item.key === selectedTopic;
           return (
             <TouchableOpacity
-              onPress={() => handleInsightPress(item.id)}
+              onPress={() => setSelectedTopic(item.key)}
+              style={[
+                styles.topicChip,
+                { 
+                  backgroundColor: isSelected ? COLORS.primary.main : cardBg,
+                  marginRight: spacing.sm,
+                },
+              ]}
               accessibilityRole="button"
-              accessibilityLabel={`인사이트: ${item.title}`}
-              accessibilityHint="버튼을 누르면 인사이트 전체 내용을 볼 수 있습니다"
+              accessibilityLabel={`${item.label} 주제 필터`}
+              accessibilityState={{ selected: isSelected }}
             >
-              <GradientCard
-                colors={[cardBg, bgColor]}
-                size="medium"
-                shadow="md"
-                radius="lg"
+              <Text
+                style={[
+                  styles.topicChipText,
+                  {
+                    fontSize: fontSizes.body,
+                    color: isSelected ? '#FFFFFF' : textPrimary,
+                  },
+                ]}
               >
-                <View style={{ padding: spacing }}>
-                  {/* 주제 태그 */}
-                  <View style={[styles.topicTag, { backgroundColor: COLORS.primary.light + '20' }]}>
-                    <Typography
-                      variant="caption"
-                      mode={mode}
-                      style={{ fontSize: fontSizes.caption, color: COLORS.primary.main, fontWeight: '600' }}
-                    >
-                      {topicInfo?.icon} {topicInfo?.label || item.topic}
-                    </Typography>
-                  </View>
-                
-                  {/* 제목 */}
-                  <Typography
-                    variant="heading"
-                    mode={mode}
-                    style={{ 
-                      fontSize: fontSizes.heading2, 
-                      marginTop: spacing / 2,
-                      color: COLORS.neutral.text.primary,
-                      fontWeight: '600'
-                    }}
-                  >
-                    {item.title}
-                  </Typography>
-                
-                  {/* 요약 */}
-                  <Typography
-                    variant="body"
-                    mode={mode}
-                    style={{
-                      fontSize: fontSizes.body,
-                      color: COLORS.neutral.text.secondary,
-                      marginTop: spacing / 2
-                    }}
-                    numberOfLines={2}
-                  >
-                    {item.summary}
-                  </Typography>
-                
-                  {/* 날짜 & 출처 */}
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: spacing }}>
-                    <Typography
-                      variant="caption"
-                      mode={mode}
-                      style={{ fontSize: fontSizes.caption, color: COLORS.neutral.text.tertiary }}
-                    >
-                      {item.date}
-                    </Typography>
-                    {item.source && (
-                      <Typography
-                        variant="caption"
-                        mode={mode}
-                        style={{ fontSize: fontSizes.caption, color: COLORS.neutral.text.tertiary }}
-                      >
-                        출처: {item.source}
-                      </Typography>
-                    )}
-                  </View>
-                </View>
-              </GradientCard>
+                {item.icon} {item.label}
+              </Text>
             </TouchableOpacity>
           );
         }}
-        ListEmptyComponent={
-          <View style={styles.centered}>
-            <Typography variant="body" mode={mode} style={{ color: '#999999' }}>
-              인사이트가 없어요.
-            </Typography>
-          </View>
-        }
       />
+    </View>
+  );
+
+  const renderInsightItem = ({ item }: { item: any }) => (
+    <TouchableOpacity
+      style={[styles.insightCard, { backgroundColor: cardBg, marginHorizontal: spacing.md }]}
+      onPress={() => handleInsightPress(item.id)}
+      accessibilityRole="button"
+      accessibilityLabel={`${item.title} 인사이트 보기`}
+    >
+      <View style={styles.insightHeader}>
+        <Text style={[styles.insightCategory, { fontSize: fontSizes.caption, color: COLORS.primary.main }]}>
+          {item.topic === 'ai_tools' ? '🤖 AI 활용' :
+           item.topic === 'digital_safety' ? '🛡️ 디지털 안전' :
+           item.topic === 'health' ? '💊 건강' :
+           item.topic === 'finance' ? '💰 금융' : '📚 기타'}
+        </Text>
+        <Text style={[styles.insightDate, { fontSize: fontSizes.caption, color: textSecondary }]}>
+          {item.published_at ? new Date(item.published_at).toLocaleDateString('ko-KR') : ''}
+        </Text>
+      </View>
+      <Text style={[styles.insightTitle, { fontSize: fontSizes.heading2, color: textPrimary }]} numberOfLines={2}>
+        {item.title}
+      </Text>
+      <Text style={[styles.insightSummary, { fontSize: fontSizes.body, color: textSecondary }]} numberOfLines={2}>
+        {item.summary}
+      </Text>
+      <View style={styles.insightFooter}>
+        <Text style={[styles.insightReadTime, { fontSize: fontSizes.caption, color: textSecondary }]}>
+          📖 {item.read_time_min || 3}분 읽기
+        </Text>
+        <Text style={[styles.insightViews, { fontSize: fontSizes.caption, color: textSecondary }]}>
+          👁️ {item.view_count || 0}
+        </Text>
+      </View>
+    </TouchableOpacity>
+  );
+
+  return (
+    <View style={[styles.container, { backgroundColor: bgColor }]}>
+      {/* 헤더 */}
+      <View style={[styles.header, { backgroundColor: COLORS.primary.main, padding: spacing.lg }]}>
+        <Text style={[styles.headerTitle, { fontSize: fontSizes.heading1, color: '#FFFFFF' }]}>
+          💡 인사이트
+        </Text>
+        <Text style={[styles.headerSubtitle, { fontSize: fontSizes.body, color: 'rgba(255,255,255,0.9)' }]}>
+          최신 디지털 정보를 확인하세요
+        </Text>
+      </View>
+
+      {/* 주제 필터 */}
+      {renderTopicFilter()}
+
+      {/* 인사이트 목록 */}
+      {isLoading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={COLORS.primary.main} />
+          <Text style={[styles.loadingText, { fontSize: fontSizes.body, color: textSecondary }]}>
+            인사이트를 불러오는 중...
+          </Text>
+        </View>
+      ) : error ? (
+        <View style={styles.errorContainer}>
+          <Text style={[styles.errorText, { fontSize: fontSizes.heading2, color: textPrimary }]}>
+            😢 오류가 발생했어요
+          </Text>
+          <Text style={[styles.errorDetail, { fontSize: fontSizes.body, color: textSecondary }]}>
+            인사이트를 불러올 수 없어요.{'\n'}잠시 후 다시 시도해 주세요.
+          </Text>
+          <TouchableOpacity
+            style={[styles.retryButton, { backgroundColor: COLORS.primary.main, height: buttonHeight }]}
+            onPress={() => refetch()}
+          >
+            <Text style={[styles.retryButtonText, { fontSize: fontSizes.body }]}>다시 시도</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <FlatList
+          data={insights || []}
+          keyExtractor={(item) => item.id}
+          renderItem={renderInsightItem}
+          contentContainerStyle={{ paddingVertical: spacing.md }}
+          ItemSeparatorComponent={() => <View style={{ height: spacing.md }} />}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Text style={[styles.emptyText, { fontSize: fontSizes.body, color: textSecondary }]}>
+                아직 인사이트가 없어요.{'\n'}곧 새로운 정보가 업데이트됩니다! 📚
+              </Text>
+            </View>
+          }
+        />
+      )}
     </View>
   );
 };
@@ -282,30 +187,103 @@ const oldInsightListScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.neutral.background,
   },
-  centered: {
+  header: {
+    paddingTop: 48,
+  },
+  headerTitle: {
+    fontWeight: '700',
+  },
+  headerSubtitle: {
+    marginTop: 4,
+  },
+  topicFilter: {},
+  topicChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  topicChipText: {
+    fontWeight: '600',
+  },
+  loadingContainer: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 32,
   },
-  topicFilter: {
-    backgroundColor: COLORS.neutral.surface,
-    ...SHADOWS.sm,
+  loadingText: {
+    marginTop: 12,
   },
-  topicChip: {
-    paddingHorizontal: SPACING.lg,
-    paddingVertical: SPACING.sm,
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
   },
-  rangeFilter: {
+  errorText: {
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  errorDetail: {
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  retryButton: {
+    paddingHorizontal: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 12,
+  },
+  retryButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
+  },
+  emptyText: {
+    textAlign: 'center',
+    lineHeight: 24,
+  },
+  insightCard: {
+    padding: 16,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  insightHeader: {
     flexDirection: 'row',
-    backgroundColor: COLORS.neutral.surface,
-    ...SHADOWS.sm,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
   },
-  topicTag: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: SPACING.sm,
-    paddingVertical: SPACING.xs,
-    borderRadius: RADIUS.sm,
+  insightCategory: {
+    fontWeight: '600',
   },
+  insightDate: {},
+  insightTitle: {
+    fontWeight: '700',
+    marginBottom: 8,
+  },
+  insightSummary: {
+    lineHeight: 22,
+    marginBottom: 12,
+  },
+  insightFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  insightReadTime: {},
+  insightViews: {},
 });

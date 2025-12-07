@@ -2,18 +2,25 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { Text, View } from 'react-native';
 import { SplashScreen } from '../screens/Auth/SplashScreen';
 import { LoginScreen } from '../screens/Auth/LoginScreen';
 import { SignupScreen } from '../screens/Auth/SignupScreen';
 import { HomeAScreen } from '../screens/Home/HomeAScreen';
 import { AIChatScreen } from '../screens/Chat/AIChatScreen';
-// import { InsightListScreen } from '../screens/Insights/InsightListScreen';
-// import { CourseListScreen } from '../screens/Courses/CourseListScreen';
-// import { MedCheckScreen } from '../screens/MedCheck/MedCheckScreen';
-// import { SettingsScreen } from '../screens/Settings/SettingsScreen';
+import { InsightListScreen } from '../screens/Insights/InsightListScreen';
+import { SettingsScreen } from '../screens/Settings/SettingsScreen';
+import { COLORS } from '../tokens/colors';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
+
+// 탭 아이콘 컴포넌트
+const TabIcon = ({ icon, focused }: { icon: string; focused: boolean }) => (
+  <View style={{ alignItems: 'center' }}>
+    <Text style={{ fontSize: 24, opacity: focused ? 1 : 0.5 }}>{icon}</Text>
+  </View>
+);
 
 // 메인 탭 네비게이터
 const MainTabs = () => {
@@ -21,37 +28,46 @@ const MainTabs = () => {
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarLabelStyle: { fontSize: 14 },
+        tabBarStyle: {
+          height: 70,
+          paddingBottom: 10,
+          paddingTop: 10,
+          backgroundColor: '#FFFFFF',
+          borderTopWidth: 1,
+          borderTopColor: '#E5E7EB',
+        },
+        tabBarLabelStyle: { 
+          fontSize: 12,
+          fontWeight: '600',
+        },
+        tabBarActiveTintColor: COLORS.primary.main,
+        tabBarInactiveTintColor: '#9CA3AF',
       }}
     >
       <Tab.Screen
         name="Home"
         component={HomeAScreen}
-        options={{ title: '홈' }}
+        options={{ 
+          title: '홈',
+          tabBarIcon: ({ focused }) => <TabIcon icon="🏠" focused={focused} />,
+        }}
       />
-      {/* 다른 스크린들은 @repo/ui 수정 후 활성화 예정 */}
-      {/*
       <Tab.Screen
         name="Insights"
         component={InsightListScreen}
-        options={{ title: '인사이트' }}
-      />
-      <Tab.Screen
-        name="Courses"
-        component={CourseListScreen}
-        options={{ title: '코스' }}
-      />
-      <Tab.Screen
-        name="MedCheck"
-        component={MedCheckScreen}
-        options={{ title: '복약체크' }}
+        options={{ 
+          title: '인사이트',
+          tabBarIcon: ({ focused }) => <TabIcon icon="💡" focused={focused} />,
+        }}
       />
       <Tab.Screen
         name="Settings"
         component={SettingsScreen}
-        options={{ title: '설정' }}
+        options={{ 
+          title: '마이페이지',
+          tabBarIcon: ({ focused }) => <TabIcon icon="👤" focused={focused} />,
+        }}
       />
-      */}
     </Tab.Navigator>
   );
 };
