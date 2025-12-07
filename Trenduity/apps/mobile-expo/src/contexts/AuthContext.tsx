@@ -136,6 +136,33 @@ const warmUpBff = async (timeoutMs: number = 60000) => {
   }
 };
 
+// BFF Keep-Alive: 14분마다 ping (Render 무료 플랜 15분 콜드 스타트 방지)
+const KEEP_ALIVE_INTERVAL = 14 * 60 * 1000; // 14분
+let keepAliveTimer: NodeJS.Timeout | null = null;
+
+const startKeepAlive = () => {
+  if (keepAliveTimer) return; // 이미 실행 중
+  
+  console.log('[AuthContext] 💓 Starting BFF keep-alive (every 14 min)');
+  keepAliveTimer = setInterval(async () => {
+    try {
+      const start = Date.now();
+      await fetch(`${BFF_URL}/health`, { method: 'GET' });
+      console.log('[AuthContext] 💓 Keep-alive ping:', Date.now() - start, 'ms');
+    } catch (error) {
+      console.log('[AuthContext] 💔 Keep-alive failed');
+    }
+  }, KEEP_ALIVE_INTERVAL);
+};
+
+const stopKeepAlive = () => {
+  if (keepAliveTimer) {
+    clearInterval(keepAliveTimer);
+    keepAliveTimer = null;
+    console.log('[AuthContext] 💤 Stopped BFF keep-alive');
+  }
+};
+
 /**
  * AuthProvider 컴포넌트
  * 
@@ -146,11 +173,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isOnboardingComplete, setIsOnboardingComplete] = useState(false);
 
-  // 초기 로드: 저장된 토큰과 사용자 정보 복원 + BFF 웜업
+  // 초기 로드: 저장된 토큰과 사용자 정보 복원 + BFF 웜업 + Keep-alive 시작
   useEffect(() => {
     loadStoredAuth();
     // 백그라운드에서 BFF 서버 웜업 (콜드 스타트 방지)
     warmUpBff();
+    // 14분마다 keep-alive ping
+    startKeepAlive();
+    
+    // 컴포넌트 언마운트 시 정리
+    return () => {
+      stopKeepAlive();
+    };
   }, []);
 
   const loadStoredAuth = async () => {
