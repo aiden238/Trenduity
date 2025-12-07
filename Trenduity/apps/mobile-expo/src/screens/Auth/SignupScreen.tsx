@@ -11,7 +11,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { Typography } from '../../components/shared/Typography';
 import { Card } from '../../components/shared/Card';
-import { COLORS, SPACING, RADIUS } from '../../tokens/colors';
+import { COLORS, SPACING, SHADOWS, RADIUS } from '../../tokens/colors';
 import { useA11y } from '../../contexts/A11yContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
@@ -21,8 +21,9 @@ import { useToast } from '../../contexts/ToastContext';
  * 
  * 기능:
  * - 이메일/비밀번호 회원가입
- * - 이름(선택), 전화번호(선택) 입력
+ * - 이름(선택) 입력
  * - 시니어 친화적 큰 글자 및 터치 영역
+ * - 로그인 화면과 동일한 UI 스타일
  */
 export const SignupScreen = () => {
   const navigation = useNavigation<any>();
@@ -34,7 +35,6 @@ export const SignupScreen = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSignup = async () => {
@@ -59,15 +59,10 @@ export const SignupScreen = () => {
       showError('비밀번호가 일치하지 않습니다.');
       return;
     }
-    if (phone && !/^\d{10,11}$/.test(phone.replace(/-/g, ''))) {
-      showError('올바른 전화번호 형식이 아닙니다.');
-      return;
-    }
 
     setIsLoading(true);
     try {
-      const cleanPhone = phone ? phone.replace(/-/g, '') : undefined;
-      await signup(email, password, name || undefined, cleanPhone);
+      await signup(email, password, name || undefined);
       showSuccess('회원가입이 완료되었습니다!');
       navigation.replace('Main');
     } catch (error: any) {
@@ -91,34 +86,23 @@ export const SignupScreen = () => {
           contentContainerStyle={[styles.scrollContent, { padding: spacing.lg }]}
           keyboardShouldPersistTaps="handled"
         >
-          {/* 헤더 */}
+          {/* 로고 & 타이틀 - 로그인 화면과 동일 */}
           <View style={[styles.header, { marginBottom: spacing.xl }]}>
-            <TouchableOpacity
-              onPress={handleNavigateToLogin}
-              style={[styles.backButton, { marginBottom: spacing.md }]}
-              accessibilityLabel="뒤로 가기"
-            >
+            <View style={[styles.logoContainer, { marginBottom: spacing.md }]}>
               <Typography
-                variant="body"
+                variant="display"
                 mode={mode}
-                style={{ fontSize: fontSizes.body, color: COLORS.neutral.white }}
+                style={[styles.logoText, { fontSize: fontSizes.display }]}
               >
-                ← 뒤로
+                Trenduity
               </Typography>
-            </TouchableOpacity>
+            </View>
             <Typography
-              variant="display"
+              variant="heading"
               mode={mode}
-              style={[styles.title, { fontSize: fontSizes.display }]}
+              style={[styles.subtitle, { fontSize: fontSizes.heading2 }]}
             >
-              회원가입
-            </Typography>
-            <Typography
-              variant="body"
-              mode={mode}
-              style={[styles.subtitle, { fontSize: fontSizes.body }]}
-            >
-              간단한 정보만 입력하세요
+              새로운 시작을 환영합니다
             </Typography>
           </View>
 
@@ -128,6 +112,14 @@ export const SignupScreen = () => {
             radius="xl"
             style={[styles.formCard, { padding: spacing.lg }]}
           >
+            <Typography
+              variant="heading"
+              mode={mode}
+              style={[styles.formTitle, { fontSize: fontSizes.heading2, marginBottom: spacing.lg }]}
+            >
+              회원가입
+            </Typography>
+
             {/* 이메일 입력 */}
             <View style={{ marginBottom: spacing.md }}>
               <Typography
@@ -135,7 +127,7 @@ export const SignupScreen = () => {
                 mode={mode}
                 style={[styles.label, { fontSize: fontSizes.body, marginBottom: spacing.xs }]}
               >
-                이메일 *
+                이메일
               </Typography>
               <TextInput
                 value={email}
@@ -157,6 +149,7 @@ export const SignupScreen = () => {
                   },
                 ]}
                 accessibilityLabel="이메일 입력"
+                accessibilityHint="이메일 주소를 입력하세요"
               />
             </View>
 
@@ -167,7 +160,7 @@ export const SignupScreen = () => {
                 mode={mode}
                 style={[styles.label, { fontSize: fontSizes.body, marginBottom: spacing.xs }]}
               >
-                비밀번호 * (6자 이상)
+                비밀번호 (6자 이상)
               </Typography>
               <TextInput
                 value={password}
@@ -176,6 +169,7 @@ export const SignupScreen = () => {
                 placeholderTextColor={COLORS.neutral.text.tertiary}
                 secureTextEntry={true}
                 autoCapitalize="none"
+                autoComplete="password"
                 style={[
                   styles.input,
                   {
@@ -187,6 +181,7 @@ export const SignupScreen = () => {
                   },
                 ]}
                 accessibilityLabel="비밀번호 입력"
+                accessibilityHint="비밀번호를 입력하세요"
               />
             </View>
 
@@ -197,7 +192,7 @@ export const SignupScreen = () => {
                 mode={mode}
                 style={[styles.label, { fontSize: fontSizes.body, marginBottom: spacing.xs }]}
               >
-                비밀번호 확인 *
+                비밀번호 확인
               </Typography>
               <TextInput
                 value={confirmPassword}
@@ -217,11 +212,12 @@ export const SignupScreen = () => {
                   },
                 ]}
                 accessibilityLabel="비밀번호 확인 입력"
+                accessibilityHint="위에서 입력한 비밀번호를 다시 입력하세요"
               />
             </View>
 
             {/* 이름 입력 (선택) */}
-            <View style={{ marginBottom: spacing.md }}>
+            <View style={{ marginBottom: spacing.lg }}>
               <Typography
                 variant="body"
                 mode={mode}
@@ -246,35 +242,7 @@ export const SignupScreen = () => {
                   },
                 ]}
                 accessibilityLabel="이름 입력"
-              />
-            </View>
-
-            {/* 전화번호 입력 (선택) */}
-            <View style={{ marginBottom: spacing.lg }}>
-              <Typography
-                variant="body"
-                mode={mode}
-                style={[styles.label, { fontSize: fontSizes.body, marginBottom: spacing.xs }]}
-              >
-                전화번호 (선택)
-              </Typography>
-              <TextInput
-                value={phone}
-                onChangeText={setPhone}
-                placeholder="01012345678"
-                placeholderTextColor={COLORS.neutral.text.tertiary}
-                keyboardType="phone-pad"
-                style={[
-                  styles.input,
-                  {
-                    height: buttonHeight,
-                    paddingHorizontal: spacing.md,
-                    borderRadius: RADIUS.md,
-                    fontSize: fontSizes.body,
-                    color: COLORS.neutral.text.primary,
-                  },
-                ]}
-                accessibilityLabel="전화번호 입력"
+                accessibilityHint="이름을 입력하세요 (선택사항)"
               />
             </View>
 
@@ -305,6 +273,7 @@ export const SignupScreen = () => {
               onPress={handleNavigateToLogin}
               style={[styles.loginLink, { paddingVertical: spacing.md }]}
               accessibilityLabel="로그인으로 돌아가기"
+              accessibilityHint="로그인 화면으로 이동합니다"
             >
               <Typography
                 variant="body"
@@ -315,6 +284,9 @@ export const SignupScreen = () => {
               </Typography>
             </TouchableOpacity>
           </Card>
+
+          {/* 하단 여백 */}
+          <View style={{ height: spacing.xl }} />
         </ScrollView>
       </View>
     </KeyboardAvoidingView>
@@ -332,44 +304,50 @@ const styles = StyleSheet.create({
   header: {
     alignItems: 'center',
   },
-  backButton: {
-    alignSelf: 'flex-start',
-    padding: 8,
+  logoContainer: {
+    alignItems: 'center',
   },
-  title: {
-    color: COLORS.neutral.white,
+  logoText: {
     fontWeight: '700',
-    textAlign: 'center',
-    marginBottom: SPACING.sm,
+    color: '#FFFFFF',
   },
   subtitle: {
-    color: COLORS.neutral.white,
+    color: '#FFFFFF',
     opacity: 0.9,
     textAlign: 'center',
   },
   formCard: {
-    backgroundColor: COLORS.neutral.white,
+    backgroundColor: '#FFFFFF',
+  },
+  formTitle: {
+    color: COLORS.neutral.text.primary,
+    fontWeight: '600',
+    textAlign: 'center',
   },
   label: {
     color: COLORS.neutral.text.secondary,
     fontWeight: '500',
   },
   input: {
-    backgroundColor: COLORS.neutral.gray100,
+    backgroundColor: COLORS.neutral.background,
     borderWidth: 1,
-    borderColor: COLORS.neutral.gray200,
+    borderColor: COLORS.neutral.border,
+    justifyContent: 'center',
+    ...SHADOWS.sm,
   },
   signupButton: {
     borderRadius: RADIUS.lg,
     overflow: 'hidden',
+    ...SHADOWS.md,
+    borderWidth: 0,
   },
   buttonGradient: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: RADIUS.lg,
   },
   buttonText: {
-    color: COLORS.neutral.white,
+    color: '#FFFFFF',
     fontWeight: '600',
   },
   loginLink: {
@@ -377,5 +355,6 @@ const styles = StyleSheet.create({
   },
   linkText: {
     color: COLORS.neutral.text.secondary,
+    textAlign: 'center',
   },
 });
