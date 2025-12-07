@@ -170,18 +170,21 @@ async def signup(body: SignupRequest, supabase: Client = Depends(get_supabase)):
             )
         
         user_id = auth_response.user.id
+        logger.info(f"Supabase Auth 사용자 생성 성공: {user_id}")
         
         # 3. profiles 테이블에 프로필 정보 저장
+        # 참고: phone 필드는 profiles 테이블 스키마에 없음
         user_data = {
             "id": user_id,
             "email": body.email,
             "display_name": body.name or "",
-            "phone": body.phone,
             "created_at": datetime.utcnow().isoformat(),
             "updated_at": datetime.utcnow().isoformat()
         }
         
+        logger.info(f"profiles 테이블에 저장 시도: {user_data}")
         supabase.table("profiles").insert(user_data).execute()
+        logger.info(f"profiles 테이블 저장 성공")
         
         # 4. JWT 토큰 생성
         token = create_jwt_token(user_id, body.email)
@@ -202,14 +205,16 @@ async def signup(body: SignupRequest, supabase: Client = Depends(get_supabase)):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"회원가입 실패: {e}")
+        import traceback
+        error_detail = traceback.format_exc()
+        logger.error(f"회원가입 실패: {e}\n상세: {error_detail}")
         raise HTTPException(
             status_code=500,
             detail={
                 "ok": False,
                 "error": {
                     "code": "INTERNAL_SERVER_ERROR",
-                    "message": "서버 오류가 발생했습니다. 잠시 후 다시 시도해 주세요."
+                    "message": f"서버 오류가 발생했습니다: {str(e)}"
                 }
             }
         )
