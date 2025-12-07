@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { A11yProvider } from './src/contexts/A11yContext';
 import { ThemeProvider } from './src/contexts/ThemeContext';
 import { ToastProvider } from './src/contexts/ToastContext';
+import { AuthProvider } from './src/contexts/AuthContext';
 import { RootNavigator } from './src/navigation/RootNavigator';
 
 const queryClient = new QueryClient({
@@ -17,7 +18,10 @@ const queryClient = new QueryClient({
 });
 
 /**
- * Trenduity - 50-70대 시니어 학습 앱 (전체 복원)
+ * Trenduity - 50-70대 시니어 학습 앱
+ * 
+ * Provider 순서:
+ * SafeArea → QueryClient → A11y → Theme → Toast → Auth → Navigation
  */
 export default function App() {
   return (
@@ -26,7 +30,9 @@ export default function App() {
         <A11yProvider>
           <ThemeProvider>
             <ToastProvider>
-              <RootNavigator />
+              <AuthProvider>
+                <RootNavigator />
+              </AuthProvider>
             </ToastProvider>
           </ThemeProvider>
         </A11yProvider>

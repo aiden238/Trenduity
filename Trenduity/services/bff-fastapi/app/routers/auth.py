@@ -76,6 +76,22 @@ class UpdateProfileRequest(BaseModel):
         }
 
 
+class SocialLoginRequest(BaseModel):
+    """소셜 로그인 요청"""
+    provider: str = Field(..., description="소셜 로그인 제공자 (google, kakao, naver)")
+    access_token: str = Field(..., description="OAuth access token")
+    refresh_token: Optional[str] = Field(None, description="OAuth refresh token")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "provider": "google",
+                "access_token": "ya29.xxx...",
+                "refresh_token": "1//xxx..."
+            }
+        }
+
+
 class AuthResponse(BaseModel):
     """인증 응답"""
     token: str = Field(..., description="JWT 토큰")
@@ -194,6 +210,121 @@ async def signup(body: SignupRequest, supabase: Client = Depends(get_supabase)):
                 "error": {
                     "code": "INTERNAL_SERVER_ERROR",
                     "message": "서버 오류가 발생했습니다. 잠시 후 다시 시도해 주세요."
+                }
+            }
+        )
+
+
+@router.post("/social", response_model=dict)
+async def social_login(body: SocialLoginRequest, supabase: Client = Depends(get_supabase)):
+    """
+    소셜 로그인 (카카오/네이버/구글)
+    
+    - OAuth access_token을 받아 Supabase 사용자 정보 조회/생성
+    - 기존 사용자면 로그인, 신규 사용자면 자동 회원가입
+    - JWT 토큰 반환
+    """
+    if not supabase:
+        raise HTTPException(status_code=503, detail={"ok": False, "error": {"message": "서비스를 사용할 수 없습니다."}})
+    
+    try:
+        logger.info(f"소셜 로그인 시도: provider={body.provider}")
+        
+        # Supabase에서 access_token으로 사용자 정보 조회
+        # 이미 Supabase OAuth로 인증된 토큰이므로 get_user로 검증
+        user_response = supabase.auth.get_user(body.access_token)
+        
+        if not user_response or not user_response.user:
+            logger.error("소셜 로그인: 사용자 정보를 가져올 수 없음")
+            raise HTTPException(
+                status_code=401,
+                detail={
+                    "ok": False,
+                    "error": {
+                        "code": "INVALID_TOKEN",
+                        "message": "소셜 로그인 인증에 실패했습니다. 다시 시도해 주세요."
+                    }
+                }
+            )
+        
+        supabase_user = user_response.user
+        user_id = supabase_user.id
+        email = supabase_user.email or ""
+        user_metadata = supabase_user.user_metadata or {}
+        
+        # 사용자 이름 추출 (provider별로 다를 수 있음)
+        name = user_metadata.get("full_name") or user_metadata.get("name") or email.split("@")[0]
+        avatar_url = user_metadata.get("avatar_url") or user_metadata.get("picture")
+        
+        logger.info(f"소셜 로그인 사용자: id={user_id}, email={email}, name={name}")
+        
+        # profiles 테이블에서 기존 프로필 확인
+        existing_profile = supabase.table("profiles").select("*").eq("id", user_id).execute()
+        
+        is_new_user = False
+        
+        if not existing_profile.data:
+            # 신규 사용자 - 프로필 생성
+            is_new_user = True
+            profile_data = {
+                "id": user_id,
+                "email": email,
+                "display_name": name,
+                "avatar_url": avatar_url,
+                "auth_provider": body.provider,
+                "created_at": datetime.utcnow().isoformat(),
+                "updated_at": datetime.utcnow().isoformat()
+            }
+            
+            try:
+                supabase.table("profiles").insert(profile_data).execute()
+                logger.info(f"신규 소셜 사용자 프로필 생성: {user_id}")
+            except Exception as insert_err:
+                logger.warning(f"프로필 생성 실패 (이미 존재할 수 있음): {insert_err}")
+                # 이미 존재하면 무시
+        else:
+            # 기존 사용자 - 마지막 로그인 시간 업데이트
+            try:
+                supabase.table("profiles").update({
+                    "updated_at": datetime.utcnow().isoformat()
+                }).eq("id", user_id).execute()
+            except Exception as update_err:
+                logger.warning(f"프로필 업데이트 실패: {update_err}")
+        
+        # JWT 토큰 생성
+        token = create_jwt_token(user_id, email)
+        
+        # 프로필 정보 조회
+        profile_result = supabase.table("profiles").select("*").eq("id", user_id).execute()
+        profile_data = profile_result.data[0] if profile_result.data else {}
+        
+        return {
+            "ok": True,
+            "data": {
+                "token": token,
+                "user": {
+                    "id": user_id,
+                    "email": email,
+                    "name": profile_data.get("display_name") or name,
+                    "age_group": profile_data.get("age_group"),
+                    "interests": profile_data.get("interests", []),
+                    "avatar_url": profile_data.get("avatar_url") or avatar_url
+                },
+                "is_new_user": is_new_user
+            }
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"소셜 로그인 실패: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "ok": False,
+                "error": {
+                    "code": "SOCIAL_LOGIN_FAILED",
+                    "message": "소셜 로그인에 실패했습니다. 잠시 후 다시 시도해 주세요."
                 }
             }
         )

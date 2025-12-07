@@ -1,97 +1,396 @@
 import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  TextInput, 
-  TouchableOpacity, 
-  StyleSheet, 
+import {
+  View,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
-  ScrollView
+  Image,
+  TextInput,
+  Modal,
+  Alert,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { COLORS, SPACING, RADIUS, SHADOWS } from '../../tokens/colors';
+import { TermsOfServiceScreen } from '../Legal/TermsOfServiceScreen';
+import { PrivacyPolicyScreen } from '../Legal/PrivacyPolicyScreen';
+import { Typography } from '../../components/shared/Typography';
+import { Card } from '../../components/shared/Card';
+import { COLORS, SPACING, SHADOWS, RADIUS } from '../../tokens/colors';
+import { useA11y } from '../../contexts/A11yContext';
+import { useAuth } from '../../contexts/AuthContext';
+import { useToast } from '../../contexts/ToastContext';
 
+/**
+ * 로그인 화면
+ * 
+ * 기능:
+ * - 이메일/비밀번호 로그인
+ * - SNS 로그인 버튼 (카카오/네이버/구글)
+ * - 회원가입 페이지로 이동
+ * - 시니어 친화적 큰 글자 및 터치 영역
+ */
 export const LoginScreen = () => {
   const navigation = useNavigation<any>();
-  const [phone, setPhone] = useState('');
+  const { mode, spacing, buttonHeight, fontSizes } = useA11y();
+  const { login, socialLogin } = useAuth();
+  const { error: showError, success: showSuccess } = useToast();
+
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isSocialLoading, setIsSocialLoading] = useState<string | null>(null);
+  const [showTermsModal, setShowTermsModal] = useState(false);
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
 
   const handleLogin = async () => {
-    if (!phone.trim()) {
-      alert('전화번호를 입력해주세요');
+    // 유효성 검사
+    if (!email.trim()) {
+      showError('이메일을 입력해 주세요.');
+      return;
+    }
+    if (!password.trim()) {
+      showError('비밀번호를 입력해 주세요.');
+      return;
+    }
+    if (!email.includes('@')) {
+      showError('올바른 이메일 형식이 아닙니다.');
       return;
     }
 
     setIsLoading(true);
-    
-    // 임시: 1초 후 메인 화면으로 이동
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      await login(email, password);
+      showSuccess('로그인 되었습니다!');
       navigation.replace('Main');
-    }, 1000);
+    } catch (error: any) {
+      showError(error.message || '로그인 실패');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  /**
+   * 소셜 로그인 처리
+   */
+  const handleSocialLogin = async (provider: 'kakao' | 'naver' | 'google') => {
+    setIsSocialLoading(provider);
+    try {
+      await socialLogin(provider);
+      
+      const providerNames = {
+        kakao: '카카오',
+        naver: '네이버',
+        google: 'Google',
+      };
+      
+      showSuccess(`${providerNames[provider]} 로그인 성공!`);
+      navigation.replace('Main');
+    } catch (error: any) {
+      showError(error.message || '소셜 로그인에 실패했습니다.');
+    } finally {
+      setIsSocialLoading(null);
+    }
+  };
+
+  const handleNavigateToSignup = () => {
+    navigation.navigate('Signup');
   };
 
   return (
-    <KeyboardAvoidingView 
-      style={styles.container}
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <ScrollView 
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-      >
-        <View style={styles.header}>
-          <Text style={styles.logo}>🎓</Text>
-          <Text style={styles.title}>Trenduity</Text>
-          <Text style={styles.subtitle}>
-            안녕하세요!{'\n'}
-            전화번호로 간편하게 로그인하세요
-          </Text>
-        </View>
+      <View style={[styles.container, { backgroundColor: COLORS.primary.main }]}>
+        <ScrollView
+          contentContainerStyle={[styles.scrollContent, { padding: spacing.lg }]}
+          keyboardShouldPersistTaps="handled"
+        >
+          {/* 로고 & 타이틀 */}
+          <View style={[styles.header, { marginBottom: spacing.xl }]}>
+            <View style={[styles.logoContainer, { marginBottom: spacing.md }]}>
+              <Typography
+                variant="display"
+                mode={mode}
+                style={[styles.logoText, { fontSize: fontSizes.display }]}
+              >
+                Trenduity
+              </Typography>
+            </View>
+            <Typography
+              variant="heading"
+              mode={mode}
+              style={[styles.subtitle, { fontSize: fontSizes.heading2 }]}
+            >
+              디지털 세상을 쉽게
+            </Typography>
+          </View>
 
-        <View style={styles.form}>
-          <Text style={styles.label}>전화번호</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="010-1234-5678"
-            placeholderTextColor={COLORS.neutral.text.tertiary}
-            value={phone}
-            onChangeText={setPhone}
-            keyboardType="phone-pad"
-            maxLength={13}
-            accessibilityLabel="전화번호 입력"
-            accessibilityHint="전화번호를 입력하여 로그인하세요"
-          />
-
-          <TouchableOpacity 
-            style={[styles.button, isLoading && styles.buttonDisabled]}
-            onPress={handleLogin}
-            disabled={isLoading}
-            accessibilityRole="button"
-            accessibilityLabel="로그인 버튼"
+          {/* 로그인 폼 카드 */}
+          <Card
+            shadow="lg"
+            radius="xl"
+            style={[styles.formCard, { padding: spacing.lg }]}
           >
-            <Text style={styles.buttonText}>
-              {isLoading ? '로그인 중...' : '로그인'}
-            </Text>
-          </TouchableOpacity>
+            <Typography
+              variant="heading"
+              mode={mode}
+              style={[styles.formTitle, { fontSize: fontSizes.heading2, marginBottom: spacing.lg }]}
+            >
+              로그인
+            </Typography>
 
-          <TouchableOpacity 
-            style={styles.signupButton}
-            onPress={() => alert('회원가입 기능 준비 중')}
-          >
-            <Text style={styles.signupText}>
-              처음이신가요? <Text style={styles.signupLink}>회원가입</Text>
-            </Text>
-          </TouchableOpacity>
-        </View>
+            {/* 이메일 입력 */}
+            <View style={{ marginBottom: spacing.md }}>
+              <Typography
+                variant="body"
+                mode={mode}
+                style={[styles.label, { fontSize: fontSizes.body, marginBottom: spacing.xs }]}
+              >
+                이메일
+              </Typography>
+              <TextInput
+                value={email}
+                onChangeText={setEmail}
+                placeholder="이메일을 입력하세요"
+                placeholderTextColor={COLORS.neutral.text.tertiary}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoComplete="email"
+                textContentType="emailAddress"
+                style={[
+                  styles.input,
+                  {
+                    height: buttonHeight,
+                    paddingHorizontal: spacing.md,
+                    borderRadius: RADIUS.md,
+                    fontSize: fontSizes.body,
+                    color: COLORS.neutral.text.primary,
+                  },
+                ]}
+                accessibilityLabel="이메일 입력"
+                accessibilityHint="이메일 주소를 입력하세요"
+              />
+            </View>
 
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>
-            시니어를 위한 디지털 리터러시 학습 플랫폼
-          </Text>
-        </View>
-      </ScrollView>
+            {/* 비밀번호 입력 */}
+            <View style={{ marginBottom: spacing.lg }}>
+              <Typography
+                variant="body"
+                mode={mode}
+                style={[styles.label, { fontSize: fontSizes.body, marginBottom: spacing.xs }]}
+              >
+                비밀번호
+              </Typography>
+              <TextInput
+                value={password}
+                onChangeText={setPassword}
+                placeholder="비밀번호를 입력하세요"
+                placeholderTextColor={COLORS.neutral.text.tertiary}
+                secureTextEntry={true}
+                autoCapitalize="none"
+                autoComplete="password"
+                style={[
+                  styles.input,
+                  {
+                    height: buttonHeight,
+                    paddingHorizontal: spacing.md,
+                    borderRadius: RADIUS.md,
+                    fontSize: fontSizes.body,
+                    color: COLORS.neutral.text.primary,
+                  },
+                ]}
+                accessibilityLabel="비밀번호 입력"
+                accessibilityHint="비밀번호를 입력하세요"
+              />
+            </View>
+
+            {/* 로그인 버튼 */}
+            <TouchableOpacity
+              onPress={handleLogin}
+              disabled={isLoading}
+              style={[
+                styles.loginButton,
+                { height: buttonHeight * 1.2, marginBottom: spacing.md },
+              ]}
+              accessibilityLabel="로그인"
+              accessibilityHint="버튼을 누르면 로그인합니다"
+            >
+              <View style={[styles.buttonGradient, { height: buttonHeight * 1.2, backgroundColor: COLORS.primary.main }]}>
+                <Typography
+                  variant="body"
+                  mode={mode}
+                  style={[styles.buttonText, { fontSize: fontSizes.body }]}
+                >
+                  {isLoading ? '로그인 중...' : '로그인'}
+                </Typography>
+              </View>
+            </TouchableOpacity>
+
+            {/* 회원가입 링크 */}
+            <TouchableOpacity
+              onPress={handleNavigateToSignup}
+              style={[styles.signupLink, { paddingVertical: spacing.md }]}
+              accessibilityLabel="회원가입"
+              accessibilityHint="회원가입 화면으로 이동합니다"
+            >
+              <Typography
+                variant="body"
+                mode={mode}
+                style={[styles.linkText, { fontSize: fontSizes.body }]}
+              >
+                아직 계정이 없으신가요? <Typography style={{ color: COLORS.primary.main, fontWeight: '600' }}>회원가입</Typography>
+              </Typography>
+            </TouchableOpacity>
+          </Card>
+
+          {/* SNS 로그인 */}
+          <View style={[styles.socialSection, { marginTop: spacing.xl }]}>
+            <Typography
+              variant="body"
+              mode={mode}
+              style={[styles.dividerText, { fontSize: fontSizes.caption, marginBottom: spacing.md }]}
+            >
+              또는 다른 방법으로 로그인
+            </Typography>
+
+            <View style={[styles.socialButtons, { gap: spacing.md }]}>
+              {/* 카카오 */}
+              <TouchableOpacity
+                onPress={() => handleSocialLogin('kakao')}
+                disabled={isSocialLoading !== null}
+                style={[styles.socialButton, { height: buttonHeight, backgroundColor: '#FEE500' }]}
+                accessibilityLabel="카카오로 시작하기"
+              >
+                <View style={styles.socialButtonContent}>
+                  {isSocialLoading === 'kakao' ? (
+                    <Typography style={[styles.socialButtonText, { fontSize: fontSizes.body, color: '#000000' }]}>
+                      로그인 중...
+                    </Typography>
+                  ) : (
+                    <>
+                      <Image
+                        source={require('../../../assets/kakao-icon.png')}
+                        style={{ width: fontSizes.body * 1.5, height: fontSizes.body * 1.5 }}
+                        resizeMode="contain"
+                      />
+                      <Typography style={[styles.socialButtonText, { fontSize: fontSizes.body, color: '#000000' }]}>
+                        카카오로 시작하기
+                      </Typography>
+                    </>
+                  )}
+                </View>
+              </TouchableOpacity>
+
+              {/* 네이버 */}
+              <TouchableOpacity
+                onPress={() => handleSocialLogin('naver')}
+                disabled={isSocialLoading !== null}
+                style={[styles.socialButton, { height: buttonHeight, backgroundColor: '#03C75A' }]}
+                accessibilityLabel="네이버로 시작하기"
+              >
+                <View style={styles.socialButtonContent}>
+                  {isSocialLoading === 'naver' ? (
+                    <Typography style={[styles.socialButtonText, { fontSize: fontSizes.body, color: '#FFFFFF' }]}>
+                      로그인 중...
+                    </Typography>
+                  ) : (
+                    <>
+                      <Image
+                        source={require('../../../assets/naver-icon.png')}
+                        style={{ width: fontSizes.body * 1.5, height: fontSizes.body * 1.5 }}
+                        resizeMode="contain"
+                      />
+                      <Typography style={[styles.socialButtonText, { fontSize: fontSizes.body, color: '#FFFFFF' }]}>
+                        네이버로 시작하기
+                      </Typography>
+                    </>
+                  )}
+                </View>
+              </TouchableOpacity>
+
+              {/* 구글 */}
+              <TouchableOpacity
+                onPress={() => handleSocialLogin('google')}
+                disabled={isSocialLoading !== null}
+                style={[styles.socialButton, { height: buttonHeight, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: COLORS.neutral.border }]}
+                accessibilityLabel="구글로 시작하기"
+              >
+                <View style={styles.socialButtonContent}>
+                  {isSocialLoading === 'google' ? (
+                    <Typography style={[styles.socialButtonText, { fontSize: fontSizes.body, color: COLORS.neutral.text.primary }]}>
+                      로그인 중...
+                    </Typography>
+                  ) : (
+                    <>
+                      <Image
+                        source={require('../../../assets/google-icon.png')}
+                        style={{ width: fontSizes.body * 1.5, height: fontSizes.body * 1.5 }}
+                        resizeMode="contain"
+                      />
+                      <Typography style={[styles.socialButtonText, { fontSize: fontSizes.body, color: COLORS.neutral.text.primary }]}>
+                        Google로 시작하기
+                      </Typography>
+                    </>
+                  )}
+                </View>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* 법적 문서 링크 */}
+          <View style={[styles.legalSection, { marginTop: spacing.lg }]}>
+            <View style={styles.legalLinks}>
+              <TouchableOpacity onPress={() => setShowTermsModal(true)}>
+                <Typography
+                  variant="caption"
+                  mode={mode}
+                  style={[styles.legalLinkText, { fontSize: fontSizes.caption }]}
+                >
+                  이용약관
+                </Typography>
+              </TouchableOpacity>
+              <Typography
+                variant="caption"
+                mode={mode}
+                style={[styles.legalDivider, { fontSize: fontSizes.caption }]}
+              >
+                {' | '}
+              </Typography>
+              <TouchableOpacity onPress={() => setShowPrivacyModal(true)}>
+                <Typography
+                  variant="caption"
+                  mode={mode}
+                  style={[styles.legalLinkText, { fontSize: fontSizes.caption }]}
+                >
+                  개인정보 처리방침
+                </Typography>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </ScrollView>
+
+        {/* 이용약관 모달 */}
+        <Modal
+          visible={showTermsModal}
+          animationType="slide"
+          presentationStyle="pageSheet"
+          onRequestClose={() => setShowTermsModal(false)}
+        >
+          <TermsOfServiceScreen onClose={() => setShowTermsModal(false)} />
+        </Modal>
+
+        {/* 개인정보 처리방침 모달 */}
+        <Modal
+          visible={showPrivacyModal}
+          animationType="slide"
+          presentationStyle="pageSheet"
+          onRequestClose={() => setShowPrivacyModal(false)}
+        >
+          <PrivacyPolicyScreen onClose={() => setShowPrivacyModal(false)} />
+        </Modal>
+      </View>
     </KeyboardAvoidingView>
   );
 };
@@ -99,87 +398,107 @@ export const LoginScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.neutral.background,
   },
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
-    padding: SPACING.lg,
   },
   header: {
     alignItems: 'center',
-    marginBottom: SPACING.xxl,
   },
-  logo: {
-    fontSize: 80,
-    marginBottom: SPACING.md,
+  logoContainer: {
+    alignItems: 'center',
   },
-  title: {
-    fontSize: 36,
-    fontWeight: 'bold',
-    color: COLORS.primary.main,
-    marginBottom: SPACING.sm,
+  logoText: {
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
   subtitle: {
-    fontSize: 18,
-    color: COLORS.neutral.text.secondary,
+    color: '#FFFFFF',
+    opacity: 0.9,
     textAlign: 'center',
-    lineHeight: 26,
   },
-  form: {
-    marginBottom: SPACING.xl,
+  formCard: {
+    backgroundColor: '#FFFFFF',
+  },
+  formTitle: {
+    color: COLORS.neutral.text.primary,
+    fontWeight: '600',
+    textAlign: 'center',
   },
   label: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.neutral.text.primary,
-    marginBottom: SPACING.sm,
+    color: COLORS.neutral.text.secondary,
+    fontWeight: '500',
   },
   input: {
-    backgroundColor: COLORS.neutral.surface,
+    backgroundColor: COLORS.neutral.background,
     borderWidth: 1,
     borderColor: COLORS.neutral.border,
-    borderRadius: RADIUS.md,
-    padding: SPACING.md,
-    fontSize: 18,
-    color: COLORS.neutral.text.primary,
-    marginBottom: SPACING.lg,
+    justifyContent: 'center',
     ...SHADOWS.sm,
   },
-  button: {
-    backgroundColor: COLORS.primary.main,
-    borderRadius: RADIUS.md,
-    padding: SPACING.md,
+  loginButton: {
+    borderRadius: RADIUS.lg,
+    overflow: 'hidden',
+    ...SHADOWS.md,
+    borderWidth: 0,
+  },
+  buttonGradient: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  buttonText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  signupLink: {
+    alignItems: 'center',
+  },
+  linkText: {
+    color: COLORS.neutral.text.secondary,
+    textAlign: 'center',
+  },
+  socialSection: {
+    alignItems: 'center',
+  },
+  dividerText: {
+    color: '#FFFFFF',
+    opacity: 0.8,
+    textAlign: 'center',
+  },
+  socialButtons: {
+    width: '100%',
+  },
+  socialButton: {
+    borderRadius: RADIUS.lg,
+    justifyContent: 'center',
     alignItems: 'center',
     ...SHADOWS.md,
   },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  buttonText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-  },
-  signupButton: {
-    marginTop: SPACING.lg,
+  socialButtonContent: {
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
   },
-  signupText: {
-    fontSize: 16,
-    color: COLORS.neutral.text.secondary,
-  },
-  signupLink: {
-    color: COLORS.primary.main,
+  socialButtonText: {
     fontWeight: '600',
   },
-  footer: {
+  legalSection: {
     alignItems: 'center',
-    marginTop: 'auto',
   },
-  footerText: {
-    fontSize: 14,
-    color: COLORS.neutral.text.tertiary,
-    textAlign: 'center',
+  legalLinks: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  legalLinkText: {
+    color: '#FFFFFF',
+    opacity: 0.8,
+    textDecorationLine: 'underline',
+  },
+  legalDivider: {
+    color: '#FFFFFF',
+    opacity: 0.6,
   },
 });
