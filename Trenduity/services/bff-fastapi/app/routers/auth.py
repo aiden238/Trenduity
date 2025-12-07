@@ -172,19 +172,19 @@ async def signup(body: SignupRequest, supabase: Client = Depends(get_supabase)):
         user_id = auth_response.user.id
         logger.info(f"Supabase Auth 사용자 생성 성공: {user_id}")
         
-        # 3. profiles 테이블에 프로필 정보 저장
+        # 3. profiles 테이블에 프로필 정보 저장 (upsert로 중복 방지)
         # 참고: phone 필드는 profiles 테이블 스키마에 없음
         user_data = {
             "id": user_id,
             "email": body.email,
             "display_name": body.name or "",
-            "created_at": datetime.utcnow().isoformat(),
             "updated_at": datetime.utcnow().isoformat()
         }
         
-        logger.info(f"profiles 테이블에 저장 시도: {user_data}")
-        supabase.table("profiles").insert(user_data).execute()
-        logger.info(f"profiles 테이블 저장 성공")
+        logger.info(f"profiles 테이블에 upsert 시도: {user_data}")
+        # upsert: 이미 존재하면 업데이트, 없으면 삽입
+        supabase.table("profiles").upsert(user_data).execute()
+        logger.info(f"profiles 테이블 upsert 성공")
         
         # 4. JWT 토큰 생성
         token = create_jwt_token(user_id, body.email)
