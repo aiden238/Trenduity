@@ -10,6 +10,7 @@ import { HomeAScreen } from '../screens/Home/HomeAScreen';
 import { AIChatScreen } from '../screens/Chat/AIChatScreen';
 import { InsightListScreen } from '../screens/Insights/InsightListScreen';
 import { SettingsScreen } from '../screens/Settings/SettingsScreen';
+import { QnaListScreen } from '../screens/Community/QnaListScreen';
 import { COLORS } from '../tokens/colors';
 
 const Stack = createNativeStackNavigator();
@@ -58,6 +59,14 @@ const MainTabs = () => {
         options={{ 
           title: '인사이트',
           tabBarIcon: ({ focused }) => <TabIcon icon="💡" focused={focused} />,
+        }}
+      />
+      <Tab.Screen
+        name="Community"
+        component={QnaListScreen}
+        options={{ 
+          title: '커뮤니티',
+          tabBarIcon: ({ focused }) => <TabIcon icon="💬" focused={focused} />,
         }}
       />
       <Tab.Screen
