@@ -48,8 +48,8 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ title = 'AI 배움터' }) 
         styles.container,
         {
           backgroundColor: activeTheme === 'dark' ? '#1F2937' : '#FFFFFF',
-          paddingHorizontal: spacing,
-          paddingVertical: spacing * 0.75,
+          paddingHorizontal: spacing.md,
+          paddingVertical: spacing.sm,
         },
       ]}
     >
@@ -71,7 +71,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ title = 'AI 배움터' }) 
             styles.button,
             {
               backgroundColor: COLORS.primary.main,
-              marginRight: spacing * 0.5,
+              marginRight: spacing.sm,
             },
           ]}
           onPress={handlePhoneCall}
