@@ -129,6 +129,30 @@ logger.info(f"User {user_id} completed card")
 
 ## 🚨 핵심 제약사항 (반드시 준수)
 
+### React/React Native 버전 고정 (Critical!)
+- **고정 버전**: `react@19.1.0`, `react-native@0.81.5` (Expo SDK 54 호환)
+- ✅ 루트 `package.json`의 `overrides`로 전체 워크스페이스 버전 통일
+- ✅ `packages/*`에서 react/react-native는 반드시 `peerDependencies`로 선언
+- ❌ `dependencies`에 react/react-native 직접 선언 금지 (중복 설치 → Metro 번들링 실패)
+
+```json
+// packages/ui/package.json 예시 (올바른 방식)
+{
+  "peerDependencies": {
+    "react": ">=18.0.0",
+    "react-native": ">=0.70.0"
+  }
+}
+
+// 루트 package.json (버전 강제 고정)
+{
+  "overrides": {
+    "react": "19.1.0",
+    "react-native": "0.81.5"
+  }
+}
+```
+
 ### diff-first 원칙
 - ❌ 전체 파일 재작성 금지
 - ❌ 신규 의존성 추가 금지

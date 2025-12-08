@@ -6,5 +6,7 @@ export type RootStackParamList = {
   Home: undefined;
   AIChat: undefined;
   EmergencySupport: undefined;
+  QnaDetail: { id: string };
+  InsightDetail: { id: string };
   // 다른 화면 추가 가능
 };

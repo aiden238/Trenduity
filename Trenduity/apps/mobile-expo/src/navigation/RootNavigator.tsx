@@ -10,8 +10,10 @@ import { HomeAScreen } from '../screens/Home/HomeAScreen';
 import { AIChatScreen } from '../screens/Chat/AIChatScreen';
 import { EmergencySupportScreen } from '../screens/Support/EmergencySupportScreen';
 import { InsightListScreen } from '../screens/Insights/InsightListScreen';
+import { InsightDetailScreen } from '../screens/Insights/InsightDetailScreen';
 import { SettingsScreen } from '../screens/Settings/SettingsScreen';
 import { QnaListScreen } from '../screens/Community/QnaListScreen';
+import { QnaDetailScreen } from '../screens/Community/QnaDetailScreen';
 import { COLORS } from '../tokens/colors';
 
 const Stack = createNativeStackNavigator();
@@ -122,6 +124,24 @@ export const RootNavigator = () => {
           component={EmergencySupportScreen}
           options={{ 
             headerShown: false,
+          }}
+        />
+        <Stack.Screen 
+          name="QnaDetail" 
+          component={QnaDetailScreen}
+          options={{ 
+            headerShown: true,
+            title: 'Q&A 상세',
+            headerBackTitle: '뒤로'
+          }}
+        />
+        <Stack.Screen 
+          name="InsightDetail" 
+          component={InsightDetailScreen}
+          options={{ 
+            headerShown: true,
+            title: '인사이트 상세',
+            headerBackTitle: '뒤로'
           }}
         />
       </Stack.Navigator>

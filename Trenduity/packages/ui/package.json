@@ -8,11 +8,9 @@
     "lint": "eslint src --ext .ts,.tsx",
     "typecheck": "tsc --noEmit"
   },
-  "dependencies": {
-    "react": "19.1.0",
-    "react-native": "0.81.5"
-  },
   "peerDependencies": {
+    "react": ">=18.0.0",
+    "react-native": ">=0.70.0",
     "react-native-linear-gradient": "*"
   },
   "devDependencies": {
