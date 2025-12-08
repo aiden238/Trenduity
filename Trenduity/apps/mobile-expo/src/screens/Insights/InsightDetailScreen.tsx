@@ -7,20 +7,143 @@ import { useRoute } from '@react-navigation/native';
 import { COLORS, SPACING, SHADOWS, RADIUS } from '../../tokens/colors';
 
 /**
+ * 마크다운 스타일 텍스트 렌더링 (간단 버전)
+ */
+const renderMarkdownContent = (content: string, fontSizes: any, textColor: string) => {
+  const lines = content.split('\n');
+  const elements: JSX.Element[] = [];
+  
+  lines.forEach((line, index) => {
+    // 제목 (##)
+    if (line.startsWith('## ')) {
+      elements.push(
+        <Text 
+          key={index} 
+          style={{ 
+            fontSize: fontSizes.heading2, 
+            fontWeight: '700', 
+            color: textColor,
+            marginTop: index > 0 ? 20 : 0,
+            marginBottom: 8,
+          }}
+        >
+          {line.replace('## ', '')}
+        </Text>
+      );
+    }
+    // 대제목 (#)
+    else if (line.startsWith('# ')) {
+      elements.push(
+        <Text 
+          key={index} 
+          style={{ 
+            fontSize: fontSizes.heading1, 
+            fontWeight: '700', 
+            color: textColor,
+            marginBottom: 12,
+          }}
+        >
+          {line.replace('# ', '')}
+        </Text>
+      );
+    }
+    // 인용문 (>)
+    else if (line.startsWith('> ')) {
+      elements.push(
+        <View 
+          key={index} 
+          style={{
+            backgroundColor: '#FEF3C7',
+            borderLeftWidth: 4,
+            borderLeftColor: COLORS.status.warning,
+            padding: 12,
+            marginVertical: 8,
+            borderRadius: 8,
+          }}
+        >
+          <Text style={{ fontSize: fontSizes.body, color: '#92400E', fontWeight: '500' }}>
+            {line.replace('> ', '')}
+          </Text>
+        </View>
+      );
+    }
+    // 번호 목록 (1. 2. 등)
+    else if (/^\d+\.\s/.test(line)) {
+      elements.push(
+        <Text 
+          key={index} 
+          style={{ 
+            fontSize: fontSizes.body, 
+            color: textColor, 
+            marginVertical: 4,
+            paddingLeft: 8,
+            lineHeight: fontSizes.body * 1.6,
+          }}
+        >
+          {line}
+        </Text>
+      );
+    }
+    // 불릿 목록 (- 또는 *)
+    else if (line.startsWith('- ') || line.startsWith('* ')) {
+      elements.push(
+        <Text 
+          key={index} 
+          style={{ 
+            fontSize: fontSizes.body, 
+            color: textColor, 
+            marginVertical: 4,
+            paddingLeft: 8,
+            lineHeight: fontSizes.body * 1.6,
+          }}
+        >
+          • {line.replace(/^[-*]\s/, '')}
+        </Text>
+      );
+    }
+    // 빈 줄
+    else if (line.trim() === '') {
+      elements.push(<View key={index} style={{ height: 8 }} />);
+    }
+    // 일반 텍스트
+    else {
+      elements.push(
+        <Text 
+          key={index} 
+          style={{ 
+            fontSize: fontSizes.body, 
+            color: textColor, 
+            lineHeight: fontSizes.body * 1.6,
+            marginVertical: 2,
+          }}
+        >
+          {line}
+        </Text>
+      );
+    }
+  });
+  
+  return elements;
+};
+
+/**
  * 인사이트 상세 화면
  */
 export const InsightDetailScreen = () => {
   const route = useRoute();
-  const { insightId } = route.params as { insightId: string };
+  const { insightId, mockData } = route.params as { insightId: string; mockData?: any };
   
-  const { data: insight, isLoading, error } = useInsightDetail(insightId);
+  const { data: apiInsight, isLoading, error } = useInsightDetail(insightId);
   const { data: followingTopics } = useFollowingTopics();
   const followTopic = useFollowTopic();
   const { speak, stop, isSpeaking } = useTTS();
   const { spacing, buttonHeight, fontSizes } = useA11y();
   
-  // 로딩 상태
-  if (isLoading) {
+  // 목업 데이터 우선 사용
+  const insight = mockData || apiInsight;
+  
+  // 로딩 상태 (API 호출 중이고 목업 데이터도 없을 때)
+  if (isLoading && !mockData) {
     return (
       <View style={[styles.container, styles.centered]}>
         <ActivityIndicator size="large" color={COLORS.primary.main} />
@@ -31,8 +154,8 @@ export const InsightDetailScreen = () => {
     );
   }
   
-  // 에러 상태
-  if (error || !insight) {
+  // 에러 상태 (데이터 없음)
+  if (!insight) {
     return (
       <View style={[styles.container, styles.centered]}>
         <Text style={[styles.errorText, { fontSize: fontSizes.body }]}>
@@ -49,7 +172,15 @@ export const InsightDetailScreen = () => {
     if (isSpeaking) {
       stop();
     } else {
-      const fullText = `${insight.title}. ${insight.summary}. ${insight.body}. ${insight.impact}`;
+      // 목업 데이터는 content 필드 사용, API 데이터는 body 사용
+      const textContent = insight.content || insight.body || '';
+      // 마크다운 기호 제거
+      const cleanText = textContent
+        .replace(/^#+\s/gm, '')
+        .replace(/^[-*]\s/gm, '')
+        .replace(/^>\s/gm, '')
+        .replace(/\*\*/g, '');
+      const fullText = `${insight.title}. ${insight.summary}. ${cleanText}`;
       speak(fullText);
     }
   };
@@ -67,16 +198,41 @@ export const InsightDetailScreen = () => {
   const handleReferencePress = (url: string) => {
     Linking.openURL(url);
   };
+
+  // 본문 내용 (목업은 content, API는 body)
+  const bodyContent = insight.content || insight.body;
   
   return (
     <ScrollView style={styles.container}>
       <View style={{ padding: spacing.md }}>
+        {/* 카테고리 및 읽기 시간 */}
+        <View style={styles.metaRow}>
+          <Text style={[styles.categoryBadge, { fontSize: fontSizes.caption }]}>
+            {insight.topic === 'ai_tools' ? '🤖 AI 활용' :
+             insight.topic === 'digital_safety' ? '🛡️ 디지털 안전' :
+             insight.topic === 'health' ? '💊 건강' :
+             insight.topic === 'finance' ? '💰 금융' : '📚 기타'}
+          </Text>
+          <Text style={[styles.readTime, { fontSize: fontSizes.caption }]}>
+            📖 {insight.read_time_min || 3}분 읽기
+          </Text>
+        </View>
+
         {/* 제목 */}
-        <Text
-          style={[styles.title, { fontSize: fontSizes.heading1 }]}
-        >
+        <Text style={[styles.title, { fontSize: fontSizes.heading1 + 4, marginTop: spacing.sm }]}>
           {insight.title}
         </Text>
+        
+        {/* 날짜 */}
+        {insight.published_at && (
+          <Text style={[styles.dateText, { fontSize: fontSizes.caption, marginTop: spacing.xs }]}>
+            {new Date(insight.published_at).toLocaleDateString('ko-KR', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric'
+            })}
+          </Text>
+        )}
         
         {/* 요약 */}
         <View style={[styles.summaryCard, { marginTop: spacing.md, padding: spacing.md, borderRadius: RADIUS.md }]}>
@@ -85,18 +241,18 @@ export const InsightDetailScreen = () => {
           </Text>
         </View>
         
-        {/* 본문 */}
-        <Text
-          style={[styles.body, {
-            marginTop: spacing.md,
-            fontSize: fontSizes.body,
-            lineHeight: fontSizes.body * 1.6
-          }]}
-        >
-          {insight.body}
-        </Text>
+        {/* 본문 (마크다운 렌더링) */}
+        <View style={{ marginTop: spacing.lg }}>
+          {bodyContent ? (
+            renderMarkdownContent(bodyContent, fontSizes, COLORS.neutral.text.primary)
+          ) : (
+            <Text style={[styles.body, { fontSize: fontSizes.body, lineHeight: fontSizes.body * 1.6 }]}>
+              {insight.body}
+            </Text>
+          )}
+        </View>
         
-        {/* 영향/의미 */}
+        {/* 영향/의미 (API 데이터용) */}
         {insight.impact && (
           <View style={[styles.impactCard, { marginTop: spacing.md, padding: spacing.md, borderRadius: RADIUS.md }]}>
             <Text style={[styles.impactTitle, { fontSize: fontSizes.body, marginBottom: spacing.xs }]}>
@@ -184,6 +340,21 @@ const styles = StyleSheet.create({
   errorText: {
     color: COLORS.status.error,
     textAlign: 'center',
+  },
+  metaRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  categoryBadge: {
+    color: COLORS.primary.main,
+    fontWeight: '600',
+  },
+  readTime: {
+    color: COLORS.neutral.text.secondary,
+  },
+  dateText: {
+    color: COLORS.neutral.text.secondary,
   },
   title: {
     color: COLORS.neutral.text.primary,

@@ -4,9 +4,18 @@ export type RootStackParamList = {
   Signup: undefined;
   Main: undefined;
   Home: undefined;
-  AIChat: undefined;
+  AIChat: { initialPrompt?: string; modelId?: string };
   EmergencySupport: undefined;
   QnaDetail: { id: string };
   InsightDetail: { id: string };
-  // 다른 화면 추가 가능
+  // 새로운 화면들
+  ExpenseTracker: undefined;
+  MapNavigator: undefined;
+  GovSupport: undefined;
+  TodoMemo: undefined;
+  ScamCheck: undefined;
+  MedCheck: undefined;
+  QnaCreate: undefined;
+  Terms: undefined;
+  Privacy: undefined;
 };

@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, ScrollView, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useA11y } from '../../contexts/A11yContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { COLORS, SPACING, SHADOWS, RADIUS } from '../../tokens/colors';
@@ -13,6 +14,9 @@ const TOPICS = [
   { key: 'general', label: '일반', icon: '💬' },
 ];
 
+// 좋아요 저장 키
+const LIKES_STORAGE_KEY = '@qna_likes';
+
 // 더미 데이터
 const DUMMY_POSTS = [
   {
@@ -22,6 +26,7 @@ const DUMMY_POSTS = [
     author_name: '김영희',
     vote_count: 12,
     topic: 'ai_tools',
+    created_at: '2024-12-05',
   },
   {
     id: '2',
@@ -30,6 +35,7 @@ const DUMMY_POSTS = [
     author_name: '이철수',
     vote_count: 8,
     topic: 'digital_safety',
+    created_at: '2024-12-04',
   },
   {
     id: '3',
@@ -38,6 +44,7 @@ const DUMMY_POSTS = [
     author_name: '박순자',
     vote_count: 15,
     topic: 'health',
+    created_at: '2024-12-03',
   },
   {
     id: '4',
@@ -46,11 +53,23 @@ const DUMMY_POSTS = [
     author_name: '정미숙',
     vote_count: 20,
     topic: 'general',
+    created_at: '2024-12-02',
+  },
+  {
+    id: '5',
+    title: '카카오톡 프로필 사진 바꾸는 법',
+    ai_summary: '손주 사진으로 프로필을 바꾸고 싶어요. 어떻게 하나요?',
+    author_name: '홍길동',
+    vote_count: 25,
+    topic: 'general',
+    created_at: '2024-12-01',
   },
 ];
 
 export const QnaListScreen = () => {
   const [selectedTopic, setSelectedTopic] = useState<string | undefined>();
+  const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
+  const [localVoteCounts, setLocalVoteCounts] = useState<Record<string, number>>({});
   const { spacing, fontSizes } = useA11y();
   const { activeTheme, colors } = useTheme();
   const navigation = useNavigation<any>();
@@ -60,6 +79,60 @@ export const QnaListScreen = () => {
   const cardBg = activeTheme === 'dark' ? colors.dark.background.secondary : '#FFFFFF';
   const textPrimary = activeTheme === 'dark' ? colors.dark.text.primary : '#1F2937';
   const textSecondary = activeTheme === 'dark' ? colors.dark.text.secondary : '#6B7280';
+
+  // 좋아요 상태 로드
+  useEffect(() => {
+    loadLikes();
+  }, []);
+
+  const loadLikes = async () => {
+    try {
+      const stored = await AsyncStorage.getItem(LIKES_STORAGE_KEY);
+      if (stored) {
+        const data = JSON.parse(stored);
+        setLikedPosts(new Set(data.likedPosts || []));
+        setLocalVoteCounts(data.voteCounts || {});
+      }
+    } catch (e) {
+      console.log('좋아요 로드 실패:', e);
+    }
+  };
+
+  const saveLikes = async (newLikedPosts: Set<string>, newVoteCounts: Record<string, number>) => {
+    try {
+      await AsyncStorage.setItem(LIKES_STORAGE_KEY, JSON.stringify({
+        likedPosts: Array.from(newLikedPosts),
+        voteCounts: newVoteCounts,
+      }));
+    } catch (e) {
+      console.log('좋아요 저장 실패:', e);
+    }
+  };
+
+  const handleLikeToggle = async (postId: string, e: any) => {
+    e.stopPropagation(); // 카드 클릭 이벤트 방지
+    
+    const newLikedPosts = new Set(likedPosts);
+    const newVoteCounts = { ...localVoteCounts };
+    
+    if (likedPosts.has(postId)) {
+      // 좋아요 취소
+      newLikedPosts.delete(postId);
+      newVoteCounts[postId] = (newVoteCounts[postId] || 0) - 1;
+    } else {
+      // 좋아요 추가
+      newLikedPosts.add(postId);
+      newVoteCounts[postId] = (newVoteCounts[postId] || 0) + 1;
+    }
+    
+    setLikedPosts(newLikedPosts);
+    setLocalVoteCounts(newVoteCounts);
+    await saveLikes(newLikedPosts, newVoteCounts);
+  };
+
+  const getVoteCount = (post: typeof DUMMY_POSTS[0]) => {
+    return post.vote_count + (localVoteCounts[post.id] || 0);
+  };
 
   // 필터된 게시물
   const filteredPosts = selectedTopic 
@@ -152,12 +225,35 @@ export const QnaListScreen = () => {
               {item.ai_summary}
             </Text>
             <View style={[styles.postMeta, { marginTop: spacing.sm }]}>
-              <Text style={[styles.postAuthor, { fontSize: fontSizes.small, color: textSecondary }]}>
-                {item.author_name}
-              </Text>
-              <Text style={[styles.postVotes, { fontSize: fontSizes.small, color: COLORS.primary.main }]}>
-                👍 {item.vote_count}
-              </Text>
+              <View style={styles.authorRow}>
+                <Text style={[styles.postAuthor, { fontSize: fontSizes.small, color: textSecondary }]}>
+                  {item.author_name}
+                </Text>
+                {item.created_at && (
+                  <Text style={[styles.postDate, { fontSize: fontSizes.small, color: textSecondary }]}>
+                    · {new Date(item.created_at).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })}
+                  </Text>
+                )}
+              </View>
+              <TouchableOpacity
+                onPress={(e) => handleLikeToggle(item.id, e)}
+                style={[
+                  styles.likeButton,
+                  likedPosts.has(item.id) && styles.likeButtonActive,
+                  { paddingVertical: spacing.xs, paddingHorizontal: spacing.sm }
+                ]}
+                accessibilityRole="button"
+                accessibilityLabel={likedPosts.has(item.id) ? '좋아요 취소' : '좋아요'}
+                accessibilityState={{ selected: likedPosts.has(item.id) }}
+              >
+                <Text style={[
+                  styles.postVotes, 
+                  { fontSize: fontSizes.small },
+                  likedPosts.has(item.id) ? styles.likeTextActive : { color: textSecondary }
+                ]}>
+                  {likedPosts.has(item.id) ? '❤️' : '🤍'} {getVoteCount(item)}
+                </Text>
+              </TouchableOpacity>
             </View>
           </TouchableOpacity>
         )}
@@ -229,9 +325,26 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  authorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   postAuthor: {},
+  postDate: {
+    marginLeft: 4,
+  },
+  likeButton: {
+    borderRadius: RADIUS.md,
+    backgroundColor: '#F3F4F6',
+  },
+  likeButtonActive: {
+    backgroundColor: '#FEE2E2',
+  },
   postVotes: {
     fontWeight: '600',
+  },
+  likeTextActive: {
+    color: '#EF4444',
   },
   emptyContainer: {
     flex: 1,

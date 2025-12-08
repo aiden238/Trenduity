@@ -209,6 +209,7 @@ export const SettingsScreen = () => {
 
           <TouchableOpacity
             style={[styles.menuItem, { backgroundColor: cardBg, marginTop: spacing.sm }]}
+            onPress={() => navigation.navigate('Terms')}
             accessibilityLabel="이용약관"
           >
             <Text style={[styles.menuItemText, { fontSize: fontSizes.body, color: textPrimary }]}>
@@ -219,6 +220,7 @@ export const SettingsScreen = () => {
 
           <TouchableOpacity
             style={[styles.menuItem, { backgroundColor: cardBg, marginTop: spacing.sm }]}
+            onPress={() => navigation.navigate('Privacy')}
             accessibilityLabel="개인정보처리방침"
           >
             <Text style={[styles.menuItemText, { fontSize: fontSizes.body, color: textPrimary }]}>

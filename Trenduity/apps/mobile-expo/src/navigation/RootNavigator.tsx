@@ -14,6 +14,16 @@ import { InsightDetailScreen } from '../screens/Insights/InsightDetailScreen';
 import { SettingsScreen } from '../screens/Settings/SettingsScreen';
 import { QnaListScreen } from '../screens/Community/QnaListScreen';
 import { QnaDetailScreen } from '../screens/Community/QnaDetailScreen';
+import { QnaCreateScreen } from '../screens/Community/QnaCreateScreen';
+import { ScamCheckScreen } from '../screens/Tools/ScamCheckScreen';
+import { MedCheckScreen } from '../screens/MedCheck/MedCheckScreen';
+import { TermsScreen } from '../screens/Legal/TermsScreen';
+import { PrivacyScreen } from '../screens/Legal/PrivacyScreen';
+// 새 화면들
+import { ExpenseTrackerScreen } from '../screens/Tools/ExpenseTrackerScreen';
+import { MapNavigatorScreen } from '../screens/Tools/MapNavigatorScreen';
+import { GovSupportScreen } from '../screens/Tools/GovSupportScreen';
+import { TodoMemoScreen } from '../screens/Tools/TodoMemoScreen';
 import { COLORS } from '../tokens/colors';
 
 const Stack = createNativeStackNavigator();
@@ -60,16 +70,16 @@ const MainTabs = () => {
         name="Insights"
         component={InsightListScreen}
         options={{ 
-          title: '인사이트',
-          tabBarIcon: ({ focused }) => <TabIcon icon="💡" focused={focused} />,
+          title: '오늘의 배움',
+          tabBarIcon: ({ focused }) => <TabIcon icon="📚" focused={focused} />,
         }}
       />
       <Tab.Screen
         name="Community"
         component={QnaListScreen}
         options={{ 
-          title: '커뮤니티',
-          tabBarIcon: ({ focused }) => <TabIcon icon="💬" focused={focused} />,
+          title: '배움의 나눔터',
+          tabBarIcon: ({ focused }) => <TabIcon icon="🤝" focused={focused} />,
         }}
       />
       <Tab.Screen
@@ -115,7 +125,7 @@ export const RootNavigator = () => {
           component={AIChatScreen}
           options={{ 
             headerShown: true,
-            title: 'AI 채팅',
+            title: 'AI 생활도우미',
             headerBackTitle: '뒤로'
           }}
         />
@@ -140,8 +150,76 @@ export const RootNavigator = () => {
           component={InsightDetailScreen}
           options={{ 
             headerShown: true,
-            title: '인사이트 상세',
+            title: '오늘의 배움 상세',
             headerBackTitle: '뒤로'
+          }}
+        />
+        <Stack.Screen 
+          name="ScamCheck" 
+          component={ScamCheckScreen}
+          options={{ 
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen 
+          name="MedCheck" 
+          component={MedCheckScreen}
+          options={{ 
+            headerShown: true,
+            title: '복약 체크',
+            headerBackTitle: '뒤로'
+          }}
+        />
+        <Stack.Screen 
+          name="QnaCreate" 
+          component={QnaCreateScreen}
+          options={{ 
+            headerShown: true,
+            title: '질문 작성',
+            headerBackTitle: '뒤로'
+          }}
+        />
+        <Stack.Screen 
+          name="Terms" 
+          component={TermsScreen}
+          options={{ 
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen 
+          name="Privacy" 
+          component={PrivacyScreen}
+          options={{ 
+            headerShown: false,
+          }}
+        />
+        {/* 새 화면들 */}
+        <Stack.Screen 
+          name="ExpenseTracker" 
+          component={ExpenseTrackerScreen}
+          options={{ 
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen 
+          name="MapNavigator" 
+          component={MapNavigatorScreen}
+          options={{ 
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen 
+          name="GovSupport" 
+          component={GovSupportScreen}
+          options={{ 
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen 
+          name="TodoMemo" 
+          component={TodoMemoScreen}
+          options={{ 
+            headerShown: false,
           }}
         />
       </Stack.Navigator>

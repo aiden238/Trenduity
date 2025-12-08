@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from app.core.config import settings
 from app.core.deps import init_redis_pool
 from app.middleware.performance import PerformanceMiddleware
-from app.routers import cards, insights, voice, scam, community, family, alerts, dashboard, med, gamification, usage
+from app.routers import cards, insights, voice, scam, community, family, alerts, dashboard, med, gamification, usage, chat, expenses, todos
 import logging
 
 logger = logging.getLogger(__name__)
@@ -127,6 +127,14 @@ app = FastAPI(
             "name": "usage",
             "description": "📱 **사용 통계** - 활동 추적"
         },
+        {
+            "name": "expenses",
+            "description": "💰 **생활요금 체크** - 가계부, 지출 분석, AI 절약 팁"
+        },
+        {
+            "name": "todos",
+            "description": "📝 **할일 메모장** - 할일 관리, 알림 설정"
+        },
     ],
 )
 
@@ -158,6 +166,15 @@ app.include_router(usage.router, prefix=f"/{settings.API_VERSION}/usage", tags=[
 # Auth 라우터 추가
 from app.routers import auth
 app.include_router(auth.router, prefix=f"/{settings.API_VERSION}/auth", tags=["auth"])
+
+# Chat 라우터 추가
+app.include_router(chat.router, prefix=f"/{settings.API_VERSION}/chat", tags=["chat"])
+
+# Expenses 라우터 추가 (생활요금 체크)
+app.include_router(expenses.router, prefix=f"/{settings.API_VERSION}/expenses", tags=["expenses"])
+
+# Todos 라우터 추가 (할일 메모장)
+app.include_router(todos.router, prefix=f"/{settings.API_VERSION}/todos", tags=["todos"])
 
 
 @app.get("/health")
