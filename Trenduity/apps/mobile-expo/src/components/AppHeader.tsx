@@ -4,8 +4,6 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  Linking,
-  Alert,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -23,19 +21,8 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ title = 'AI 배움터' }) 
   const { spacing } = useA11y();
   const { colors, activeTheme } = useTheme();
 
-  const handlePhoneCall = async () => {
-    const phoneNumber = 'tel:1577-0199';
-    try {
-      const supported = await Linking.canOpenURL(phoneNumber);
-      if (supported) {
-        await Linking.openURL(phoneNumber);
-      } else {
-        Alert.alert('전화 걸기 실패', '전화 앱을 열 수 없습니다.');
-      }
-    } catch (error) {
-      console.error('전화 걸기 에러:', error);
-      Alert.alert('오류', '전화를 걸 수 없습니다.');
-    }
+  const handleEmergencySupport = () => {
+    navigation.navigate('EmergencySupport');
   };
 
   const handleAIChat = () => {
@@ -74,9 +61,9 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ title = 'AI 배움터' }) 
               marginRight: spacing.sm,
             },
           ]}
-          onPress={handlePhoneCall}
-          accessibilityLabel="전화 상담하기"
-          accessibilityHint="1577-0199로 전화를 겁니다"
+          onPress={handleEmergencySupport}
+          accessibilityLabel="긴급 상담하기"
+          accessibilityHint="긴급 상담 페이지로 이동합니다"
           accessibilityRole="button"
         >
           <Text style={styles.icon}>📞</Text>
@@ -88,7 +75,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ title = 'AI 배움터' }) 
               },
             ]}
           >
-            전화 상담
+            긴급 상담
           </Text>
         </TouchableOpacity>
 

@@ -1,7 +1,7 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
-import { Typography, Button } from '@repo/ui';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useA11y } from '../../contexts/A11yContext';
+import { COLORS, SPACING, SHADOWS, RADIUS } from '../../tokens/colors';
 
 /**
  * 초간단 홈 화면 (ultra 모드)
@@ -10,34 +10,60 @@ import { useA11y } from '../../contexts/A11yContext';
  * TODO(IMPLEMENT): 버튼 액션 구현
  */
 export const HomeCScreen = () => {
-  const { mode } = useA11y();
+  const { spacing, buttonHeight, fontSizes } = useA11y();
 
   return (
     <View style={styles.container}>
-      <Typography variant="heading" mode={mode} style={styles.title}>
+      <Text style={[styles.title, { fontSize: fontSizes.heading1, marginBottom: spacing.xl }]}>
         오늘 할 일
-      </Typography>
+      </Text>
 
-      <Button mode={mode} onPress={() => console.log('[TODO] 카드 읽기')}>
-        오늘의 카드
-      </Button>
+      <TouchableOpacity
+        style={[styles.button, { 
+          height: buttonHeight * 1.5, 
+          backgroundColor: COLORS.primary.main,
+          borderRadius: RADIUS.xl,
+          marginBottom: spacing.md,
+        }]}
+        onPress={() => console.log('[TODO] 카드 읽기')}
+        accessibilityRole="button"
+        accessibilityLabel="오늘의 카드 보기"
+      >
+        <Text style={[styles.buttonText, { fontSize: fontSizes.heading2 }]}>
+          📖 오늘의 카드
+        </Text>
+      </TouchableOpacity>
 
-      <Button
-        mode={mode}
+      <TouchableOpacity
+        style={[styles.button, { 
+          height: buttonHeight * 1.5, 
+          backgroundColor: COLORS.secondary.main,
+          borderRadius: RADIUS.xl,
+          marginBottom: spacing.md,
+        }]}
         onPress={() => console.log('[TODO] 복약 체크')}
-        style={styles.button}
+        accessibilityRole="button"
+        accessibilityLabel="약 먹기 체크하기"
       >
-        약 먹기 체크
-      </Button>
+        <Text style={[styles.buttonText, { fontSize: fontSizes.heading2 }]}>
+          💊 약 먹기 체크
+        </Text>
+      </TouchableOpacity>
 
-      <Button
-        mode={mode}
-        variant="secondary"
+      <TouchableOpacity
+        style={[styles.button, { 
+          height: buttonHeight * 1.5, 
+          backgroundColor: COLORS.accent.orange,
+          borderRadius: RADIUS.xl,
+        }]}
         onPress={() => console.log('[TODO] 음성 기능')}
-        style={styles.button}
+        accessibilityRole="button"
+        accessibilityLabel="음성으로 말하기"
       >
-        말하기
-      </Button>
+        <Text style={[styles.buttonText, { fontSize: fontSizes.heading2 }]}>
+          🎤 말하기
+        </Text>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -45,15 +71,22 @@ export const HomeCScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 24,
+    padding: SPACING.xl,
     backgroundColor: '#FFFFFF',
     justifyContent: 'center',
   },
   title: {
     textAlign: 'center',
-    marginBottom: 32,
+    color: COLORS.neutral.text.primary,
+    fontWeight: '700',
   },
   button: {
-    marginTop: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...SHADOWS.lg,
+  },
+  buttonText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
   },
 });

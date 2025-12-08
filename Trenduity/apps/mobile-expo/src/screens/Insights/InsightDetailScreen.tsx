@@ -1,10 +1,10 @@
 import React from 'react';
-import { View, StyleSheet, ScrollView, Linking, ActivityIndicator } from 'react-native';
-import { Typography, Button, Card } from '@repo/ui';
+import { View, Text, StyleSheet, ScrollView, Linking, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { useA11y } from '../../contexts/A11yContext';
 import { useTTS } from '../../hooks/useTTS';
 import { useInsightDetail, useFollowTopic, useFollowingTopics } from '../../hooks/useInsights';
 import { useRoute } from '@react-navigation/native';
+import { COLORS, SPACING, SHADOWS, RADIUS } from '../../tokens/colors';
 
 /**
  * 인사이트 상세 화면
@@ -17,16 +17,16 @@ export const InsightDetailScreen = () => {
   const { data: followingTopics } = useFollowingTopics();
   const followTopic = useFollowTopic();
   const { speak, stop, isSpeaking } = useTTS();
-  const { mode, spacing, buttonHeight, fontSizes } = useA11y();
+  const { spacing, buttonHeight, fontSizes } = useA11y();
   
   // 로딩 상태
   if (isLoading) {
     return (
       <View style={[styles.container, styles.centered]}>
-        <ActivityIndicator size="large" color="#2196F3" />
-        <Typography variant="body" mode={mode} style={{ marginTop: spacing }}>
+        <ActivityIndicator size="large" color={COLORS.primary.main} />
+        <Text style={[styles.loadingText, { fontSize: fontSizes.body, marginTop: spacing.md }]}>
           인사이트를 불러오는 중이에요...
-        </Typography>
+        </Text>
       </View>
     );
   }
@@ -35,9 +35,9 @@ export const InsightDetailScreen = () => {
   if (error || !insight) {
     return (
       <View style={[styles.container, styles.centered]}>
-        <Typography variant="body" mode={mode}>
+        <Text style={[styles.errorText, { fontSize: fontSizes.body }]}>
           인사이트를 불러올 수 없어요. 😢
-        </Typography>
+        </Text>
       </View>
     );
   }
@@ -70,118 +70,99 @@ export const InsightDetailScreen = () => {
   
   return (
     <ScrollView style={styles.container}>
-      <View style={{ padding: spacing }}>
+      <View style={{ padding: spacing.md }}>
         {/* 제목 */}
-        <Typography
-          variant="heading"
-          mode={mode}
-          style={{ fontSize: fontSizes.heading1 }}
+        <Text
+          style={[styles.title, { fontSize: fontSizes.heading1 }]}
         >
           {insight.title}
-        </Typography>
+        </Text>
         
         {/* 요약 */}
-        <Card mode={mode} style={{ marginTop: spacing, backgroundColor: '#F0F8FF' }}>
-          <Typography variant="body" mode={mode} style={{ fontSize: fontSizes.body }}>
+        <View style={[styles.summaryCard, { marginTop: spacing.md, padding: spacing.md, borderRadius: RADIUS.md }]}>
+          <Text style={[styles.summaryText, { fontSize: fontSizes.body }]}>
             💡 {insight.summary}
-          </Typography>
-        </Card>
+          </Text>
+        </View>
         
         {/* 본문 */}
-        <Typography
-          variant="body"
-          mode={mode}
-          style={{
-            marginTop: spacing,
+        <Text
+          style={[styles.body, {
+            marginTop: spacing.md,
             fontSize: fontSizes.body,
             lineHeight: fontSizes.body * 1.6
-          }}
+          }]}
         >
           {insight.body}
-        </Typography>
+        </Text>
         
-        {/* 영향 */}
+        {/* 영향/의미 */}
         {insight.impact && (
-          <Card mode={mode} style={{ marginTop: spacing, backgroundColor: '#FFF4E6' }}>
-            <Typography variant="body" mode={mode} style={{ fontSize: fontSizes.body }}>
-              ✨ {insight.impact}
-            </Typography>
-          </Card>
-        )}
-        
-        {/* 참고 링크 */}
-        {insight.references && insight.references.length > 0 && (
-          <View style={{ marginTop: spacing * 2 }}>
-            <Typography
-              variant="heading"
-              mode={mode}
-              style={{ fontSize: fontSizes.heading2 }}
-            >
-              🔗 참고 자료
-            </Typography>
-            {insight.references.map((ref, index) => (
-              <Button
-                key={index}
-                mode={mode}
-                onPress={() => handleReferencePress(ref.url)}
-                variant="outline"
-                style={{ marginTop: spacing / 2, height: buttonHeight }}
-                accessibilityLabel={`참고 링크: ${ref.title}`}
-              >
-                {ref.title}
-              </Button>
-            ))}
+          <View style={[styles.impactCard, { marginTop: spacing.md, padding: spacing.md, borderRadius: RADIUS.md }]}>
+            <Text style={[styles.impactTitle, { fontSize: fontSizes.body, marginBottom: spacing.xs }]}>
+              📌 이게 왜 중요해요?
+            </Text>
+            <Text style={[styles.impactText, { fontSize: fontSizes.body }]}>
+              {insight.impact}
+            </Text>
           </View>
         )}
         
-        {/* 액션 버튼 */}
-        <View style={{ marginTop: spacing * 2 }}>
-          {/* 읽어주기 버튼 */}
-          <Button
-            mode={mode}
+        {/* 액션 버튼들 */}
+        <View style={[styles.actions, { marginTop: spacing.lg }]}>
+          {/* TTS 버튼 */}
+          <TouchableOpacity
+            style={[styles.actionButton, { 
+              height: buttonHeight, 
+              backgroundColor: isSpeaking ? COLORS.status.warning : COLORS.primary.main,
+              borderRadius: RADIUS.lg,
+              marginBottom: spacing.sm,
+            }]}
             onPress={handleTTS}
-            variant="secondary"
-            style={{ height: buttonHeight }}
             accessibilityRole="button"
-            accessibilityLabel={isSpeaking ? "읽기 중지" : "인사이트 읽어주기"}
-            accessibilityHint={isSpeaking ? "버튼을 누르면 읽기가 멈춥니다" : "버튼을 누르면 인사이트 내용을 소리내어 읽어줍니다"}
+            accessibilityLabel={isSpeaking ? "읽기 멈추기" : "글 읽어주기"}
           >
-            {isSpeaking ? '⏸️ 중지' : '🎤 읽어주기'}
-          </Button>
+            <Text style={[styles.actionButtonText, { fontSize: fontSizes.body }]}>
+              {isSpeaking ? '⏹️ 읽기 멈추기' : '🔊 읽어주기'}
+            </Text>
+          </TouchableOpacity>
           
           {/* 팔로우 버튼 */}
-          <Button
-            mode={mode}
+          <TouchableOpacity
+            style={[styles.actionButton, { 
+              height: buttonHeight, 
+              backgroundColor: isFollowing ? COLORS.neutral.border : COLORS.secondary.main,
+              borderRadius: RADIUS.lg,
+            }]}
             onPress={handleFollow}
-            variant={isFollowing ? 'outline' : 'primary'}
-            style={{ marginTop: spacing, height: buttonHeight }}
-            disabled={followTopic.isPending}
             accessibilityRole="button"
-            accessibilityLabel={isFollowing ? '주제 팔로우 해제' : '주제 팔로우'}
-            accessibilityHint={isFollowing ? '버튼을 누르면 이 주제 팔로우를 해제합니다' : '버튼을 누르면 이 주제의 새 인사이트를 받아볼 수 있습니다'}
+            accessibilityLabel={isFollowing ? "팔로우 취소" : "이 주제 팔로우하기"}
           >
-            {followTopic.isPending
-              ? '처리 중...'
-              : isFollowing
-              ? '⭐ 팔로우 중'
-              : '⭐ 주제 팔로우'}
-          </Button>
+            <Text style={[styles.actionButtonText, { fontSize: fontSizes.body }]}>
+              {isFollowing ? '✓ 팔로우 중' : '+ 팔로우'}
+            </Text>
+          </TouchableOpacity>
         </View>
         
-        {/* 출처 */}
-        {insight.source && (
-          <Typography
-            variant="caption"
-            mode={mode}
-            style={{
-              fontSize: fontSizes.caption,
-              color: '#999999',
-              marginTop: spacing * 2,
-              textAlign: 'center'
-            }}
-          >
-            출처: {insight.source}
-          </Typography>
+        {/* 참고 링크 */}
+        {insight.references && insight.references.length > 0 && (
+          <View style={{ marginTop: spacing.lg }}>
+            <Text style={[styles.sectionTitle, { fontSize: fontSizes.body, marginBottom: spacing.sm }]}>
+              📚 참고 자료
+            </Text>
+            {insight.references.map((ref: any, index: number) => (
+              <TouchableOpacity
+                key={index}
+                onPress={() => handleReferencePress(ref.url)}
+                style={[styles.referenceItem, { padding: spacing.sm, marginBottom: spacing.xs }]}
+                accessibilityRole="link"
+              >
+                <Text style={[styles.referenceText, { fontSize: fontSizes.small }]}>
+                  🔗 {ref.title || ref.url}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         )}
       </View>
     </ScrollView>
@@ -196,6 +177,57 @@ const styles = StyleSheet.create({
   centered: {
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 32,
+  },
+  loadingText: {
+    color: COLORS.neutral.text.secondary,
+  },
+  errorText: {
+    color: COLORS.status.error,
+    textAlign: 'center',
+  },
+  title: {
+    color: COLORS.neutral.text.primary,
+    fontWeight: '700',
+  },
+  summaryCard: {
+    backgroundColor: '#E0F2FE',
+  },
+  summaryText: {
+    color: COLORS.primary.main,
+    fontWeight: '500',
+  },
+  body: {
+    color: COLORS.neutral.text.primary,
+  },
+  impactCard: {
+    backgroundColor: '#FEF3C7',
+  },
+  impactTitle: {
+    color: COLORS.status.warning,
+    fontWeight: '700',
+  },
+  impactText: {
+    color: COLORS.neutral.text.primary,
+  },
+  actions: {},
+  actionButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...SHADOWS.md,
+  },
+  actionButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  sectionTitle: {
+    color: COLORS.neutral.text.primary,
+    fontWeight: '600',
+  },
+  referenceItem: {
+    backgroundColor: '#F3F4F6',
+    borderRadius: RADIUS.sm,
+  },
+  referenceText: {
+    color: COLORS.primary.main,
   },
 });

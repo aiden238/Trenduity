@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, FlatList, ScrollView, TouchableOpacity } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { useA11y } from '../../contexts/A11yContext';
 import { useTheme } from '../../contexts/ThemeContext';
-import { COLORS } from '../../tokens/colors';
+import { COLORS, SPACING, SHADOWS, RADIUS } from '../../tokens/colors';
 
 const TOPICS = [
   { key: undefined, label: '전체', icon: '📚' },
@@ -69,12 +68,13 @@ export const QnaListScreen = () => {
 
   return (
     <View style={[styles.container, { backgroundColor: bgColor }]}>
-      {/* 그라디언트 헤더 */}
-      <LinearGradient
-        colors={[COLORS.primary.main, COLORS.primary.dark]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={[styles.header, { paddingTop: spacing.lg + 40, paddingBottom: spacing.xl }]}
+      {/* 헤더 (그라디언트 대신 단색 배경) */}
+      <View
+        style={[styles.header, { 
+          paddingTop: spacing.lg + 40, 
+          paddingBottom: spacing.xl,
+          backgroundColor: COLORS.primary.main 
+        }]}
       >
         <View style={{ paddingHorizontal: spacing.lg }}>
           <Text style={[styles.headerTitle, { fontSize: fontSizes.heading1 }]}>
@@ -84,7 +84,7 @@ export const QnaListScreen = () => {
             궁금한 점을 물어보고 답변을 공유하세요
           </Text>
         </View>
-      </LinearGradient>
+      </View>
 
       {/* 주제 필터 */}
       <View style={[styles.filterContainer, { padding: spacing.md, backgroundColor: cardBg }]}>
@@ -119,64 +119,65 @@ export const QnaListScreen = () => {
         </ScrollView>
       </View>
 
-      {/* 질문 목록 */}
+      {/* 게시물 목록 */}
       <FlatList
         data={filteredPosts}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={{ padding: spacing.md, paddingBottom: 100 }}
+        contentContainerStyle={{ padding: spacing.md }}
         renderItem={({ item }) => (
           <TouchableOpacity
-            style={[styles.postCard, { backgroundColor: cardBg, marginBottom: spacing.md }]}
-            onPress={() => console.log('질문 상세:', item.id)}
+            onPress={() => navigation.navigate('QnaDetail', { postId: item.id })}
+            style={[
+              styles.postCard,
+              { 
+                backgroundColor: cardBg, 
+                marginBottom: spacing.md,
+                padding: spacing.md,
+                borderRadius: RADIUS.lg,
+              }
+            ]}
             accessibilityRole="button"
-            accessibilityLabel={`질문: ${item.title}`}
+            accessibilityLabel={`${item.title} - ${item.author_name}님의 질문`}
           >
-            <Text style={[styles.postTitle, { fontSize: fontSizes.heading3, color: textPrimary }]}>
+            <Text style={[styles.postTitle, { fontSize: fontSizes.body, color: textPrimary }]}>
               {item.title}
             </Text>
-            <Text
-              style={[styles.postSummary, { fontSize: fontSizes.body, color: textSecondary, marginTop: spacing.xs }]}
+            <Text 
+              style={[
+                styles.postSummary, 
+                { fontSize: fontSizes.small, color: textSecondary, marginTop: spacing.xs }
+              ]}
               numberOfLines={2}
             >
               {item.ai_summary}
             </Text>
             <View style={[styles.postMeta, { marginTop: spacing.sm }]}>
-              <Text style={[styles.postAuthor, { fontSize: fontSizes.caption, color: textSecondary }]}>
+              <Text style={[styles.postAuthor, { fontSize: fontSizes.small, color: textSecondary }]}>
                 {item.author_name}
               </Text>
-              <Text style={[styles.postVotes, { fontSize: fontSizes.caption, color: COLORS.primary.main }]}>
-                💡 {item.vote_count}
+              <Text style={[styles.postVotes, { fontSize: fontSizes.small, color: COLORS.primary.main }]}>
+                👍 {item.vote_count}
               </Text>
             </View>
           </TouchableOpacity>
         )}
         ListEmptyComponent={
-          <View style={styles.emptyState}>
-            <Text style={{ fontSize: 48, marginBottom: 16 }}>💭</Text>
-            <Text style={[styles.emptyTitle, { fontSize: fontSizes.heading2, color: textPrimary }]}>
-              아직 질문이 없어요
-            </Text>
-            <Text style={[styles.emptyDesc, { fontSize: fontSizes.body, color: textSecondary }]}>
-              첫 질문을 남겨보세요!
+          <View style={styles.emptyContainer}>
+            <Text style={[styles.emptyText, { fontSize: fontSizes.body, color: textSecondary }]}>
+              아직 질문이 없어요. 첫 번째 질문을 올려보세요! 🙋
             </Text>
           </View>
         }
       />
 
-      {/* 질문 작성 버튼 (FAB) */}
+      {/* FAB - 질문하기 버튼 */}
       <TouchableOpacity
-        style={styles.fab}
-        onPress={() => console.log('질문 작성')}
-        accessibilityLabel="질문 작성하기"
+        style={[styles.fab, { backgroundColor: COLORS.primary.main }]}
+        onPress={() => navigation.navigate('QnaCreate')}
         accessibilityRole="button"
+        accessibilityLabel="새 질문 작성하기"
       >
-        <LinearGradient
-          colors={[COLORS.primary.main, COLORS.primary.dark]}
-          style={styles.fabGradient}
-        >
-          <Text style={styles.fabIcon}>✏️</Text>
-          <Text style={[styles.fabText, { fontSize: fontSizes.body }]}>질문하기</Text>
-        </LinearGradient>
+        <Text style={styles.fabText}>✏️</Text>
       </TouchableOpacity>
     </View>
   );
@@ -187,7 +188,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    paddingHorizontal: 16,
+    borderBottomLeftRadius: RADIUS.xl,
+    borderBottomRightRadius: RADIUS.xl,
   },
   headerTitle: {
     color: '#FFFFFF',
@@ -197,11 +199,10 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.9)',
   },
   filterContainer: {
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    ...SHADOWS.sm,
   },
   filterButton: {
-    borderRadius: 20,
+    borderRadius: RADIUS.lg,
     backgroundColor: '#F3F4F6',
   },
   filterButtonActive: {
@@ -215,65 +216,44 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   postCard: {
-    padding: 16,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    ...SHADOWS.md,
   },
   postTitle: {
     fontWeight: '600',
   },
   postSummary: {
-    lineHeight: 22,
+    lineHeight: 20,
   },
   postMeta: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
   },
   postAuthor: {},
   postVotes: {
     fontWeight: '600',
   },
-  emptyState: {
+  emptyContainer: {
     flex: 1,
-    justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 60,
+    justifyContent: 'center',
+    paddingVertical: 40,
   },
-  emptyTitle: {
-    fontWeight: '600',
-    marginBottom: 8,
-  },
-  emptyDesc: {
+  emptyText: {
     textAlign: 'center',
   },
   fab: {
     position: 'absolute',
-    bottom: 20,
     right: 20,
+    bottom: 30,
+    width: 56,
+    height: 56,
     borderRadius: 28,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  fabGradient: {
-    flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-  },
-  fabIcon: {
-    fontSize: 18,
-    marginRight: 8,
+    justifyContent: 'center',
+    ...SHADOWS.lg,
   },
   fabText: {
-    color: '#FFFFFF',
-    fontWeight: '600',
+    fontSize: 24,
   },
 });

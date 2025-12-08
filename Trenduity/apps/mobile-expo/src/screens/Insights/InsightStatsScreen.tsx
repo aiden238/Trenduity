@@ -1,9 +1,9 @@
 import React from 'react';
-import { View, StyleSheet, ScrollView, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Dimensions, ActivityIndicator } from 'react-native';
 import { LineChart } from 'react-native-chart-kit';
-import { Typography, StatCard, GradientCard, COLORS, SPACING, SHADOWS, RADIUS } from '@repo/ui';
 import { useA11y } from '../../contexts/A11yContext';
 import { useInsightStats } from '../../hooks/useInsights';
+import { COLORS, SPACING, SHADOWS, RADIUS } from '../../tokens/colors';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -22,9 +22,10 @@ export const InsightStatsScreen = () => {
   if (isLoading || !stats) {
     return (
       <View style={styles.centered}>
-        <Typography variant="body" style={{ color: COLORS.neutral.text.secondary }}>
+        <ActivityIndicator size="large" color={COLORS.primary.main} />
+        <Text style={[styles.loadingText, { fontSize: fontSizes.body, marginTop: spacing.md }]}>
           통계를 불러오는 중...
-        </Typography>
+        </Text>
       </View>
     );
   }
@@ -64,203 +65,99 @@ export const InsightStatsScreen = () => {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ padding: spacing }}>
+    <ScrollView style={styles.container} contentContainerStyle={{ padding: spacing.md }}>
       {/* 헤더 */}
-      <Typography
-        variant="heading1"
-        style={{
+      <Text
+        style={[styles.heading, {
           fontSize: fontSizes.heading1,
-          marginBottom: spacing * 2,
-          color: COLORS.neutral.text.primary,
-          fontWeight: '700',
-        }}
+          marginBottom: spacing.lg,
+        }]}
       >
         📊 나의 통계
-      </Typography>
+      </Text>
 
       {/* 월간 통계 카드 - 3개 행 */}
-      <View style={{ marginBottom: spacing * 2 }}>
+      <View style={{ marginBottom: spacing.lg }}>
         <View style={styles.statsRow}>
-          <View style={{ flex: 1, marginRight: spacing }}>
-            <StatCard
-              icon="⭐"
-              value={stats.total_points || 0}
-              label="총 포인트"
-              unit="pt"
-              colors={COLORS.gradients.primary}
-            />
+          {/* 총 포인트 */}
+          <View style={[styles.statCard, { 
+            flex: 1, 
+            marginRight: spacing.sm,
+            backgroundColor: COLORS.primary.main,
+            padding: spacing.md,
+            borderRadius: RADIUS.lg,
+          }]}>
+            <Text style={styles.statIcon}>⭐</Text>
+            <Text style={[styles.statValue, { fontSize: fontSizes.heading1 }]}>
+              {(stats.total_points || 0).toLocaleString()}
+            </Text>
+            <Text style={[styles.statLabel, { fontSize: fontSizes.small }]}>총 포인트</Text>
           </View>
-          <View style={{ flex: 1, marginLeft: spacing }}>
-            <StatCard
-              icon="🔥"
-              value={stats.current_streak || 0}
-              label="연속 스트릭"
-              unit="일"
-              colors={[COLORS.accent.orange, COLORS.accent.pink]}
-            />
+
+          {/* 연속 스트릭 */}
+          <View style={[styles.statCard, { 
+            flex: 1, 
+            marginLeft: spacing.sm,
+            backgroundColor: COLORS.accent.orange,
+            padding: spacing.md,
+            borderRadius: RADIUS.lg,
+          }]}>
+            <Text style={styles.statIcon}>🔥</Text>
+            <Text style={[styles.statValue, { fontSize: fontSizes.heading1 }]}>
+              {stats.current_streak || 0}
+            </Text>
+            <Text style={[styles.statLabel, { fontSize: fontSizes.small }]}>연속 스트릭</Text>
           </View>
         </View>
 
-        <View style={[styles.statsRow, { marginTop: spacing * 1.5 }]}>
-          <View style={{ flex: 1, marginRight: spacing }}>
-            <StatCard
-              icon="🏆"
-              value={stats.level || 1}
-              label="현재 레벨"
-              colors={[COLORS.accent.purple, COLORS.accent.pink]}
-            />
-          </View>
-          <View style={{ flex: 1, marginLeft: spacing }}>
-            <StatCard
-              icon="🎯"
-              value={stats.completed_cards || 0}
-              label="완료한 카드"
-              unit="개"
-              colors={COLORS.gradients.cool}
-            />
-          </View>
+        {/* 레벨 */}
+        <View style={[styles.statCard, { 
+          marginTop: spacing.md,
+          backgroundColor: COLORS.secondary.main,
+          padding: spacing.md,
+          borderRadius: RADIUS.lg,
+        }]}>
+          <Text style={styles.statIcon}>🎖️</Text>
+          <Text style={[styles.statValue, { fontSize: fontSizes.heading1 }]}>
+            Lv.{stats.level || 1}
+          </Text>
+          <Text style={[styles.statLabel, { fontSize: fontSizes.small }]}>현재 레벨</Text>
         </View>
       </View>
 
       {/* 주간 활동 차트 */}
-      <GradientCard
-        colors={['#FFFFFF', COLORS.neutral.background]}
-        size="large"
-        shadow="lg"
-        radius="lg"
-      >
-        <Typography
-          variant="heading2"
-          style={{
-            fontSize: fontSizes.heading2,
-            marginBottom: spacing,
-            color: COLORS.neutral.text.primary,
-            fontWeight: '600',
-          }}
-        >
-          📈 주간 활동
-        </Typography>
-
-        <LineChart
-          data={weeklyData}
-          width={screenWidth - spacing * 4}
-          height={220}
-          chartConfig={chartConfig}
-          bezier
-          style={{
-            borderRadius: RADIUS.md,
-          }}
-          withInnerLines
-          withOuterLines
-          withVerticalLabels
-          withHorizontalLabels
-          withDots
-          withShadow={false}
-          fromZero
-        />
-
-        <Typography
-          variant="caption"
-          style={{
-            fontSize: fontSizes.caption,
-            marginTop: spacing,
-            color: COLORS.neutral.text.secondary,
-            textAlign: 'center',
-          }}
-        >
-          최근 7일간 완료한 카드 수
-        </Typography>
-      </GradientCard>
+      <Text style={[styles.sectionTitle, { fontSize: fontSizes.body, marginBottom: spacing.sm }]}>
+        📈 이번 주 활동
+      </Text>
+      <LineChart
+        data={weeklyData}
+        width={screenWidth - spacing.md * 2}
+        height={200}
+        chartConfig={chartConfig}
+        bezier
+        style={{
+          marginVertical: spacing.sm,
+          borderRadius: RADIUS.lg,
+        }}
+      />
 
       {/* 배지 컬렉션 */}
-      <View style={{ marginTop: spacing * 2 }}>
-        <Typography
-          variant="heading2"
-          style={{
-            fontSize: fontSizes.heading2,
-            marginBottom: spacing,
-            color: COLORS.neutral.text.primary,
-            fontWeight: '600',
-          }}
-        >
-          🏅 획득한 배지
-        </Typography>
-
-        <View style={styles.badgeGrid}>
-          {stats.badges?.map((badge: string, index: number) => (
-            <GradientCard
-              key={index}
-              colors={[COLORS.accent.yellow, COLORS.accent.orange]}
-              size="small"
-              shadow="md"
-              radius="lg"
-            >
-              <View style={styles.badgeCard}>
-                <Typography
-                  variant="heading2"
-                  style={{
-                    fontSize: fontSizes.heading1 * 1.5,
-                    textAlign: 'center',
-                  }}
-                >
-                  🏆
-                </Typography>
-                <Typography
-                  variant="caption"
-                  style={{
-                    fontSize: fontSizes.caption,
-                    color: '#FFFFFF',
-                    fontWeight: '600',
-                    textAlign: 'center',
-                    marginTop: spacing / 2,
-                  }}
-                >
-                  {badge}
-                </Typography>
-              </View>
-            </GradientCard>
-          ))}
-
-          {/* 빈 배지 슬롯 (잠김 상태) */}
-          {[...Array(6 - (stats.badges?.length || 0))].map((_, index) => (
-            <View
-              key={`empty-${index}`}
-              style={[
-                styles.emptyBadge,
-                {
-                  borderRadius: RADIUS.lg,
-                  padding: spacing,
-                },
-              ]}
-            >
-              <Typography
-                variant="heading2"
-                style={{
-                  fontSize: fontSizes.heading1 * 1.5,
-                  textAlign: 'center',
-                  opacity: 0.3,
-                }}
-              >
-                🔒
-              </Typography>
-              <Typography
-                variant="caption"
-                style={{
-                  fontSize: fontSizes.caption,
-                  color: COLORS.neutral.text.tertiary,
-                  textAlign: 'center',
-                  marginTop: spacing / 2,
-                }}
-              >
-                잠김
-              </Typography>
-            </View>
-          ))}
-        </View>
+      <Text style={[styles.sectionTitle, { fontSize: fontSizes.body, marginTop: spacing.lg, marginBottom: spacing.sm }]}>
+        🏆 획득한 배지
+      </Text>
+      <View style={styles.badgeGrid}>
+        {(stats.badges || []).map((badge: any, index: number) => (
+          <View key={index} style={[styles.badgeItem, { padding: spacing.sm, margin: spacing.xs }]}>
+            <Text style={styles.badgeEmoji}>{badge.icon || '🏅'}</Text>
+            <Text style={[styles.badgeName, { fontSize: fontSizes.small }]}>{badge.name}</Text>
+          </View>
+        ))}
+        {(!stats.badges || stats.badges.length === 0) && (
+          <Text style={[styles.emptyText, { fontSize: fontSizes.body }]}>
+            아직 획득한 배지가 없어요. 학습을 시작해보세요! 🎯
+          </Text>
+        )}
       </View>
-
-      {/* 하단 여백 */}
-      <View style={{ height: spacing * 3 }} />
     </ScrollView>
   );
 };
@@ -274,28 +171,60 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: COLORS.neutral.background,
+  },
+  loadingText: {
+    color: COLORS.neutral.text.secondary,
+  },
+  heading: {
+    color: COLORS.neutral.text.primary,
+    fontWeight: '700',
   },
   statsRow: {
     flexDirection: 'row',
   },
+  statCard: {
+    alignItems: 'center',
+    ...SHADOWS.md,
+  },
+  statIcon: {
+    fontSize: 32,
+    marginBottom: 4,
+  },
+  statValue: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+  },
+  statLabel: {
+    color: 'rgba(255, 255, 255, 0.9)',
+    marginTop: 4,
+  },
+  sectionTitle: {
+    color: COLORS.neutral.text.primary,
+    fontWeight: '600',
+  },
   badgeGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: SPACING.md,
   },
-  badgeCard: {
+  badgeItem: {
     alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 100,
+    backgroundColor: '#FFFFFF',
+    borderRadius: RADIUS.md,
+    ...SHADOWS.sm,
   },
-  emptyBadge: {
-    width: (screenWidth - SPACING.md * 5) / 3,
-    backgroundColor: COLORS.neutral.surface,
-    borderWidth: 2,
-    borderColor: COLORS.neutral.border,
-    borderStyle: 'dashed',
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 100,
+  badgeEmoji: {
+    fontSize: 28,
+  },
+  badgeName: {
+    color: COLORS.neutral.text.secondary,
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  emptyText: {
+    color: COLORS.neutral.text.secondary,
+    textAlign: 'center',
+    flex: 1,
+    paddingVertical: 20,
   },
 });

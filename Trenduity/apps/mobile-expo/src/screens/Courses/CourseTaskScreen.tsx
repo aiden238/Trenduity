@@ -1,7 +1,7 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
-import { Typography, Button } from '@repo/ui';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useA11y } from '../../contexts/A11yContext';
+import { COLORS, SPACING, SHADOWS, RADIUS } from '../../tokens/colors';
 
 /**
  * 코스 작업 화면 (단계별)
@@ -10,27 +10,36 @@ import { useA11y } from '../../contexts/A11yContext';
  * TODO(IMPLEMENT): 진행도 저장
  */
 export const CourseTaskScreen = () => {
-  const { mode } = useA11y();
+  const { spacing, buttonHeight, fontSizes } = useA11y();
 
   return (
     <View style={styles.container}>
-      <Typography variant="heading" mode={mode}>
-        1단계: 미리캔버스 접속하기
-      </Typography>
+      <Text style={[styles.heading, { fontSize: fontSizes.heading1, marginBottom: spacing.lg }]}>
+        📝 1단계: 미리캔버스 접속하기
+      </Text>
 
-      <Typography variant="body" mode={mode} style={styles.body}>
-        1. 크롬 브라우저를 엽니다{'\n'}
-        2. 주소창에 miricanvas.com을 입력합니다{'\n'}
-        3. 로그인 버튼을 클릭합니다
-      </Typography>
+      <View style={[styles.stepCard, { padding: spacing.md, borderRadius: RADIUS.lg, marginBottom: spacing.lg }]}>
+        <Text style={[styles.stepText, { fontSize: fontSizes.body, lineHeight: fontSizes.body * 1.8 }]}>
+          1. 크롬 브라우저를 엽니다{'\n'}
+          2. 주소창에 miricanvas.com을 입력합니다{'\n'}
+          3. 로그인 버튼을 클릭합니다
+        </Text>
+      </View>
 
-      <Button
-        mode={mode}
+      <TouchableOpacity
+        style={[styles.button, { 
+          height: buttonHeight, 
+          backgroundColor: COLORS.primary.main,
+          borderRadius: RADIUS.lg,
+        }]}
         onPress={() => console.log('[TODO] 다음 단계')}
-        style={styles.button}
+        accessibilityRole="button"
+        accessibilityLabel="완료하고 다음 단계로 이동"
       >
-        완료하고 다음 단계
-      </Button>
+        <Text style={[styles.buttonText, { fontSize: fontSizes.body }]}>
+          완료하고 다음 단계 →
+        </Text>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -38,13 +47,26 @@ export const CourseTaskScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
+    padding: SPACING.lg,
     backgroundColor: '#FFFFFF',
   },
-  body: {
-    marginVertical: 16,
+  heading: {
+    color: COLORS.neutral.text.primary,
+    fontWeight: '700',
+  },
+  stepCard: {
+    backgroundColor: '#F3F4F6',
+  },
+  stepText: {
+    color: COLORS.neutral.text.primary,
   },
   button: {
-    marginTop: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...SHADOWS.md,
+  },
+  buttonText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
   },
 });

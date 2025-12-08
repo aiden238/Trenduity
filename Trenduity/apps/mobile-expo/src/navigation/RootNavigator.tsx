@@ -8,6 +8,7 @@ import { LoginScreen } from '../screens/Auth/LoginScreen';
 import { SignupScreen } from '../screens/Auth/SignupScreen';
 import { HomeAScreen } from '../screens/Home/HomeAScreen';
 import { AIChatScreen } from '../screens/Chat/AIChatScreen';
+import { EmergencySupportScreen } from '../screens/Support/EmergencySupportScreen';
 import { InsightListScreen } from '../screens/Insights/InsightListScreen';
 import { SettingsScreen } from '../screens/Settings/SettingsScreen';
 import { QnaListScreen } from '../screens/Community/QnaListScreen';
@@ -114,6 +115,13 @@ export const RootNavigator = () => {
             headerShown: true,
             title: 'AI 채팅',
             headerBackTitle: '뒤로'
+          }}
+        />
+        <Stack.Screen 
+          name="EmergencySupport" 
+          component={EmergencySupportScreen}
+          options={{ 
+            headerShown: false,
           }}
         />
       </Stack.Navigator>
