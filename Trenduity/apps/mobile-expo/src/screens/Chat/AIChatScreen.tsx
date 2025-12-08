@@ -376,7 +376,7 @@ export const AIChatScreen = () => {
       <View style={[styles.header, { backgroundColor: selectedModel.color, padding: spacing.lg, paddingTop: spacing.lg + 40 }]}>
         <View style={styles.headerTop}>
           <Text style={[styles.headerTitle, { fontSize: fontSizes.heading1, color: '#FFFFFF' }]}>
-            {selectedModel.icon} AI 생활도우미
+            {selectedModel.icon} AI 도우미
           </Text>
           <TouchableOpacity
             style={[styles.modelSwitchButton, { backgroundColor: 'rgba(255,255,255,0.2)', padding: spacing.sm, borderRadius: 20 }]}

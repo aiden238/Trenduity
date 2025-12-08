@@ -24,6 +24,9 @@ import { ExpenseTrackerScreen } from '../screens/Tools/ExpenseTrackerScreen';
 import { MapNavigatorScreen } from '../screens/Tools/MapNavigatorScreen';
 import { GovSupportScreen } from '../screens/Tools/GovSupportScreen';
 import { TodoMemoScreen } from '../screens/Tools/TodoMemoScreen';
+import { SubscriptionScreen } from '../screens/Settings/SubscriptionScreen';
+import { SideIncomeScreen } from '../screens/Finance/SideIncomeScreen';
+import { AdminScreen } from '../screens/Admin/AdminScreen';
 import { COLORS } from '../tokens/colors';
 
 const Stack = createNativeStackNavigator();
@@ -83,6 +86,14 @@ const MainTabs = () => {
         }}
       />
       <Tab.Screen
+        name="Finance"
+        component={SideIncomeScreen}
+        options={{ 
+          title: '재테크',
+          tabBarIcon: ({ focused }) => <TabIcon icon="💰" focused={focused} />,
+        }}
+      />
+      <Tab.Screen
         name="Settings"
         component={SettingsScreen}
         options={{ 
@@ -125,7 +136,7 @@ export const RootNavigator = () => {
           component={AIChatScreen}
           options={{ 
             headerShown: true,
-            title: 'AI 생활도우미',
+            title: 'AI 도우미',
             headerBackTitle: '뒤로'
           }}
         />
@@ -218,6 +229,20 @@ export const RootNavigator = () => {
         <Stack.Screen 
           name="TodoMemo" 
           component={TodoMemoScreen}
+          options={{ 
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen 
+          name="Subscription" 
+          component={SubscriptionScreen}
+          options={{ 
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen 
+          name="Admin" 
+          component={AdminScreen}
           options={{ 
             headerShown: false,
           }}

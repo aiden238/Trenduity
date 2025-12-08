@@ -321,13 +321,13 @@ export const InsightListScreen = () => {
 
   return (
     <View style={[styles.container, { backgroundColor: bgColor }]}>
-      {/* 헤더 */}
-      <View style={[styles.header, { backgroundColor: COLORS.primary.main, padding: spacing.lg }]}>
+      {/* 헤더 - 청록색 계열 */}
+      <View style={[styles.header, { backgroundColor: '#0F766E', padding: spacing.lg }]}>
         <Text style={[styles.headerTitle, { fontSize: fontSizes.heading1, color: '#FFFFFF' }]}>
-          💡 인사이트
+          📚 오늘의 배움
         </Text>
         <Text style={[styles.headerSubtitle, { fontSize: fontSizes.body, color: 'rgba(255,255,255,0.9)' }]}>
-          최신 디지털 정보를 확인하세요
+          하루 3분, 새로운 지식을 배워보세요
         </Text>
       </View>
 

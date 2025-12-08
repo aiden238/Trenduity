@@ -320,7 +320,7 @@ export const ExpenseTrackerScreen = () => {
                 💡 생활요금 줄이는 Tip 받기
               </Text>
               <Text style={{ fontSize: fontSizes.small, color: '#B45309', marginTop: 4 }}>
-                AI 생활도우미가 절약 방법을 알려드려요!
+                AI 도우미가 절약 방법을 알려드려요!
               </Text>
             </TouchableOpacity>
           )}
@@ -485,7 +485,7 @@ export const ExpenseTrackerScreen = () => {
               생활요금 줄이는 방법 물어보기
             </Text>
             <Text style={{ fontSize: fontSizes.body, color: 'rgba(255,255,255,0.9)', marginTop: 4 }}>
-              AI 생활도우미가 맞춤 절약 팁을 알려드려요!
+              AI 도우미가 맞춤 절약 팁을 알려드려요!
             </Text>
           </TouchableOpacity>
         )}

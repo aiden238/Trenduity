@@ -141,17 +141,17 @@ export const QnaListScreen = () => {
 
   return (
     <View style={[styles.container, { backgroundColor: bgColor }]}>
-      {/* 헤더 (그라디언트 대신 단색 배경) */}
+      {/* 헤더 - 붉은 노랑 계열 */}
       <View
         style={[styles.header, { 
           paddingTop: spacing.lg + 40, 
           paddingBottom: spacing.xl,
-          backgroundColor: COLORS.primary.main 
+          backgroundColor: '#D97706'
         }]}
       >
         <View style={{ paddingHorizontal: spacing.lg }}>
           <Text style={[styles.headerTitle, { fontSize: fontSizes.heading1 }]}>
-            💬 커뮤니티 Q&A
+            🤝 배움의 나눔터
           </Text>
           <Text style={[styles.headerSubtitle, { fontSize: fontSizes.body, marginTop: spacing.xs }]}>
             궁금한 점을 물어보고 답변을 공유하세요

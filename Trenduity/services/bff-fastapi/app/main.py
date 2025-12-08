@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from app.core.config import settings
 from app.core.deps import init_redis_pool
 from app.middleware.performance import PerformanceMiddleware
-from app.routers import cards, insights, voice, scam, community, family, alerts, dashboard, med, gamification, usage, chat, expenses, todos
+from app.routers import cards, insights, voice, scam, community, family, alerts, dashboard, med, gamification, usage, chat, expenses, todos, subscriptions, admin
 import logging
 
 logger = logging.getLogger(__name__)
@@ -175,6 +175,12 @@ app.include_router(expenses.router, prefix=f"/{settings.API_VERSION}/expenses", 
 
 # Todos 라우터 추가 (할일 메모장)
 app.include_router(todos.router, prefix=f"/{settings.API_VERSION}/todos", tags=["todos"])
+
+# Subscriptions 라우터 추가 (구독 관리)
+app.include_router(subscriptions.router, prefix=f"/{settings.API_VERSION}/subscriptions", tags=["subscriptions"])
+
+# Admin 라우터 추가 (관리자 전용)
+app.include_router(admin.router, prefix=f"/{settings.API_VERSION}/admin", tags=["admin"])
 
 
 @app.get("/health")

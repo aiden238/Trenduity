@@ -87,8 +87,8 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ title = 'AI 배움터' }) 
             },
           ]}
           onPress={handleAIChat}
-          accessibilityLabel="AI 생활도우미"
-          accessibilityHint="AI 생활도우미 화면으로 이동합니다"
+          accessibilityLabel="AI 도우미"
+          accessibilityHint="AI 도우미 화면으로 이동합니다"
           accessibilityRole="button"
         >
           <Text style={styles.icon}>🤖</Text>
@@ -100,7 +100,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ title = 'AI 배움터' }) 
               },
             ]}
           >
-            생활도우미
+            AI 도우미
           </Text>
         </TouchableOpacity>
       </View>

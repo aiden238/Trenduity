@@ -2,9 +2,9 @@
 AI 채팅 라우터
 
 시니어 친화적 AI 채팅 기능 제공
-- OpenAI API 연동 (GPT-4 또는 GPT-3.5-turbo)
+- 다중 AI 모델 지원 (GPT, Gemini, Claude)
 - 시니어 맞춤 시스템 프롬프트
-- 레이트 리미팅
+- 레이트 리미팅 및 사용량 추적
 """
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
@@ -19,13 +19,53 @@ from app.core.deps import get_current_user, get_redis_client
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
-# 환경 변수
+# 환경 변수 - 각 AI 서비스 API 키
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
-OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-3.5-turbo")
+GOOGLE_AI_API_KEY = os.getenv("GOOGLE_AI_API_KEY", "")  # Gemini
+ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")  # Claude
 
 # 레이트 리미팅
 RATE_LIMIT_WINDOW = 60  # 1분
 RATE_LIMIT_MAX_REQUESTS = 10  # 최대 10회
+
+# AI 모델 설정
+AI_MODEL_CONFIG = {
+    # 빠른 일반 비서 - Gemini
+    "quick": {
+        "provider": "google",
+        "model": "gemini-1.5-flash",
+        "fallback_model": "gemini-1.5-flash",
+        "name": "빠른 일반 비서",
+    },
+    # 만능 비서 - GPT-4o-mini (빠른 GPT 계열)
+    "allround": {
+        "provider": "openai",
+        "model": "gpt-4o-mini",
+        "fallback_model": "gpt-3.5-turbo",
+        "name": "만능 비서",
+    },
+    # 글쓰기 비서 - Claude
+    "writer": {
+        "provider": "anthropic",
+        "model": "claude-3-5-sonnet-20241022",
+        "fallback_model": "claude-3-haiku-20240307",
+        "name": "글쓰기 비서",
+    },
+    # 척척박사 비서 - 플래그쉽 계열 (GPT-4o)
+    "expert": {
+        "provider": "openai",
+        "model": "gpt-4o",
+        "fallback_model": "gpt-4o-mini",
+        "name": "척척박사 비서",
+    },
+    # 천재 비서 - Claude Opus 4.5급 하이엔드 (든든 플랜 전용)
+    "genius": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-20250514",
+        "fallback_model": "claude-3-5-sonnet-20241022",
+        "name": "천재 비서",
+    },
+}
 
 # 시니어 친화적 시스템 프롬프트
 SYSTEM_PROMPT = """당신은 50-70대 시니어를 위한 친절한 AI 도우미입니다.
@@ -55,12 +95,110 @@ class ChatRequest(BaseModel):
     """채팅 요청"""
     message: str = Field(..., min_length=1, max_length=500, description="사용자 메시지")
     history: List[Message] = Field(default=[], description="이전 대화 기록 (최근 10개)")
+    model_id: Optional[str] = Field(default="allround", description="AI 모델 ID (quick/allround/writer/expert/genius)")
+    system_prompt: Optional[str] = Field(default=None, description="커스텀 시스템 프롬프트")
 
 
 class ChatResponse(BaseModel):
     """채팅 응답"""
     reply: str
     usage: Optional[dict] = None
+    model_used: Optional[str] = None
+
+
+async def call_openai(messages: List[dict], model: str) -> dict:
+    """OpenAI API 호출"""
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        response = await client.post(
+            "https://api.openai.com/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {OPENAI_API_KEY}",
+                "Content-Type": "application/json"
+            },
+            json={
+                "model": model,
+                "messages": messages,
+                "max_tokens": 500,
+                "temperature": 0.7
+            }
+        )
+        if response.status_code != 200:
+            raise Exception(f"OpenAI API error: {response.status_code}")
+        data = response.json()
+        return {
+            "reply": data["choices"][0]["message"]["content"],
+            "usage": data.get("usage"),
+            "model_used": model
+        }
+
+
+async def call_google(messages: List[dict], model: str, system_prompt: str) -> dict:
+    """Google Gemini API 호출"""
+    # Gemini 형식으로 변환
+    contents = []
+    for msg in messages:
+        if msg["role"] == "user":
+            contents.append({"role": "user", "parts": [{"text": msg["content"]}]})
+        elif msg["role"] == "assistant":
+            contents.append({"role": "model", "parts": [{"text": msg["content"]}]})
+    
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        response = await client.post(
+            f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={GOOGLE_AI_API_KEY}",
+            headers={"Content-Type": "application/json"},
+            json={
+                "contents": contents,
+                "systemInstruction": {"parts": [{"text": system_prompt}]},
+                "generationConfig": {
+                    "maxOutputTokens": 500,
+                    "temperature": 0.7
+                }
+            }
+        )
+        if response.status_code != 200:
+            raise Exception(f"Google AI API error: {response.status_code}")
+        data = response.json()
+        reply = data["candidates"][0]["content"]["parts"][0]["text"]
+        return {
+            "reply": reply,
+            "usage": data.get("usageMetadata"),
+            "model_used": model
+        }
+
+
+async def call_anthropic(messages: List[dict], model: str, system_prompt: str) -> dict:
+    """Anthropic Claude API 호출"""
+    # Claude 형식으로 변환 (system은 별도)
+    claude_messages = []
+    for msg in messages:
+        if msg["role"] in ["user", "assistant"]:
+            claude_messages.append({"role": msg["role"], "content": msg["content"]})
+    
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        response = await client.post(
+            "https://api.anthropic.com/v1/messages",
+            headers={
+                "x-api-key": ANTHROPIC_API_KEY,
+                "anthropic-version": "2023-06-01",
+                "Content-Type": "application/json"
+            },
+            json={
+                "model": model,
+                "system": system_prompt,
+                "messages": claude_messages,
+                "max_tokens": 500,
+                "temperature": 0.7
+            }
+        )
+        if response.status_code != 200:
+            raise Exception(f"Anthropic API error: {response.status_code}")
+        data = response.json()
+        reply = data["content"][0]["text"]
+        return {
+            "reply": reply,
+            "usage": data.get("usage"),
+            "model_used": model
+        }
 
 
 @router.post("/send")
@@ -72,16 +210,28 @@ async def send_message(
     """
     AI 채팅 메시지 전송
     
-    - OpenAI API로 응답 생성
-    - 시니어 친화적 시스템 프롬프트 적용
-    - 레이트 리미팅: 1분당 10회
+    다중 AI 모델 지원:
+    - quick: Gemini (빠른 일반 비서)
+    - allround: GPT-4o-mini (만능 비서)
+    - writer: Claude (글쓰기 비서)
+    - expert: GPT-4o (척척박사 비서)
+    - genius: Claude Opus급 (천재 비서)
     """
     user_id = current_user["id"]
+    model_id = body.model_id or "allround"
+    
+    # 모델 설정 가져오기
+    model_config = AI_MODEL_CONFIG.get(model_id, AI_MODEL_CONFIG["allround"])
+    provider = model_config["provider"]
+    model = model_config["model"]
+    
+    # 시스템 프롬프트 (커스텀 또는 기본)
+    system_prompt = body.system_prompt or SYSTEM_PROMPT
     
     # 레이트 리미팅
     if redis:
         try:
-            rate_limit_key = f"ratelimit:chat:{user_id}"
+            rate_limit_key = f"ratelimit:chat:{user_id}:{model_id}"
             current_count = redis.get(rate_limit_key)
             
             if current_count and int(current_count) >= RATE_LIMIT_MAX_REQUESTS:
@@ -100,64 +250,49 @@ async def send_message(
         except Exception as e:
             logger.warning(f"Redis rate limiting failed: {e}")
     
-    # OpenAI API 키 확인
-    if not OPENAI_API_KEY:
-        # 목업 응답 (API 키 없을 때)
+    # 메시지 준비
+    messages = [{"role": "system", "content": system_prompt}]
+    for msg in body.history[-10:]:
+        messages.append({"role": msg.role, "content": msg.content})
+    messages.append({"role": "user", "content": body.message})
+    
+    # API 키 확인 및 호출
+    try:
+        result = None
+        
+        if provider == "openai" and OPENAI_API_KEY:
+            result = await call_openai(messages, model)
+        elif provider == "google" and GOOGLE_AI_API_KEY:
+            result = await call_google(messages, model, system_prompt)
+        elif provider == "anthropic" and ANTHROPIC_API_KEY:
+            result = await call_anthropic(messages, model, system_prompt)
+        
+        # 폴백: OpenAI로 대체
+        if not result and OPENAI_API_KEY:
+            fallback_model = model_config.get("fallback_model", "gpt-3.5-turbo")
+            logger.info(f"Using fallback model: {fallback_model}")
+            result = await call_openai(messages, fallback_model)
+        
+        # 결과 반환
+        if result:
+            return {
+                "ok": True,
+                "data": {
+                    "reply": result["reply"],
+                    "usage": result.get("usage"),
+                    "model_used": result.get("model_used")
+                }
+            }
+        
+        # API 키 없으면 목업 응답
         return {
             "ok": True,
             "data": {
                 "reply": _get_mock_response(body.message),
-                "usage": None
+                "usage": None,
+                "model_used": "mock"
             }
         }
-    
-    # OpenAI API 호출
-    try:
-        messages = [{"role": "system", "content": SYSTEM_PROMPT}]
-        
-        # 이전 대화 기록 추가 (최근 10개)
-        for msg in body.history[-10:]:
-            messages.append({"role": msg.role, "content": msg.content})
-        
-        # 현재 메시지 추가
-        messages.append({"role": "user", "content": body.message})
-        
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            response = await client.post(
-                "https://api.openai.com/v1/chat/completions",
-                headers={
-                    "Authorization": f"Bearer {OPENAI_API_KEY}",
-                    "Content-Type": "application/json"
-                },
-                json={
-                    "model": OPENAI_MODEL,
-                    "messages": messages,
-                    "max_tokens": 300,
-                    "temperature": 0.7
-                }
-            )
-            
-            if response.status_code != 200:
-                logger.error(f"OpenAI API error: {response.text}")
-                return {
-                    "ok": True,
-                    "data": {
-                        "reply": _get_mock_response(body.message),
-                        "usage": None
-                    }
-                }
-            
-            data = response.json()
-            reply = data["choices"][0]["message"]["content"]
-            usage = data.get("usage")
-            
-            return {
-                "ok": True,
-                "data": {
-                    "reply": reply,
-                    "usage": usage
-                }
-            }
             
     except Exception as e:
         logger.error(f"Chat API error: {e}")
@@ -165,7 +300,8 @@ async def send_message(
             "ok": True,
             "data": {
                 "reply": _get_mock_response(body.message),
-                "usage": None
+                "usage": None,
+                "model_used": "mock"
             }
         }
 

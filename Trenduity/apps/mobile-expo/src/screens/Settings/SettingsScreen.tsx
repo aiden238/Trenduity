@@ -199,6 +199,17 @@ export const SettingsScreen = () => {
 
           <TouchableOpacity
             style={[styles.menuItem, { backgroundColor: cardBg, marginTop: spacing.sm }]}
+            onPress={() => navigation.navigate('Subscription')}
+            accessibilityLabel="도우미 관리"
+          >
+            <Text style={[styles.menuItemText, { fontSize: fontSizes.body, color: textPrimary }]}>
+              🤖 도우미 관리
+            </Text>
+            <Text style={styles.menuItemArrow}>›</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.menuItem, { backgroundColor: cardBg, marginTop: spacing.sm }]}
             accessibilityLabel="가족 연결"
           >
             <Text style={[styles.menuItemText, { fontSize: fontSizes.body, color: textPrimary }]}>
@@ -237,6 +248,20 @@ export const SettingsScreen = () => {
               ℹ️ 앱 버전 1.0.0
             </Text>
           </TouchableOpacity>
+
+          {/* 관리자 메뉴 (관리자 권한 있을 때만 표시) */}
+          {(user?.role === 'admin' || user?.role === 'super_admin') && (
+            <TouchableOpacity
+              style={[styles.menuItem, { backgroundColor: '#1F2937', marginTop: spacing.sm }]}
+              onPress={() => navigation.navigate('Admin')}
+              accessibilityLabel="관리자 페이지"
+            >
+              <Text style={[styles.menuItemText, { fontSize: fontSizes.body, color: '#FFFFFF' }]}>
+                ⚙️ 관리자 페이지
+              </Text>
+              <Text style={[styles.menuItemArrow, { color: '#FFFFFF' }]}>›</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* 로그아웃 버튼 */}
