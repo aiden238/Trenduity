@@ -13,8 +13,8 @@ import {
   RefreshControl,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import * as Notifications from 'expo-notifications';
-import DateTimePicker from '@react-native-community/datetimepicker';
+// TODO: DateTimePicker는 Development Build에서만 동작
+// import DateTimePicker from '@react-native-community/datetimepicker';
 import { useA11y } from '../../contexts/A11yContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { COLORS } from '../../tokens/colors';
@@ -28,14 +28,9 @@ import {
   TodoItem as ApiTodoItem,
 } from '../../hooks/useTodos';
 
-// 알림 설정
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
-});
+// TODO: expo-notifications는 Development Build에서만 동작
+// 현재는 알림 기능 비활성화 (추후 EAS Build로 활성화 예정)
+const NOTIFICATIONS_ENABLED = false;
 
 // 로컬 할일 타입 (Date 객체 사용)
 interface LocalTodoItem {
@@ -106,49 +101,24 @@ export const TodoMemoScreen = () => {
     setRefreshing(false);
   }, [refetch]);
 
+  // TODO: 알림 기능은 Development Build에서 활성화 예정
   const registerForPushNotifications = async () => {
-    const { status: existingStatus } = await Notifications.getPermissionsAsync();
-    let finalStatus = existingStatus;
-    
-    if (existingStatus !== 'granted') {
-      const { status } = await Notifications.requestPermissionsAsync();
-      finalStatus = status;
-    }
-    
-    if (finalStatus !== 'granted') {
-      console.log('알림 권한이 거부되었습니다.');
-    }
+    // 현재 비활성화 - EAS Build 후 활성화
+    console.log('알림 기능은 Development Build에서 사용 가능합니다');
   };
 
-  // 알림 예약
+  // 알림 예약 (Development Build에서 활성화 예정)
   const scheduleNotification = async (title: string, reminderTime: Date): Promise<string | undefined> => {
-    const trigger = new Date(reminderTime);
-    
-    // 과거 시간이면 알림 예약하지 않음
-    if (trigger <= new Date()) {
-      return undefined;
-    }
-
-    try {
-      const notificationId = await Notifications.scheduleNotificationAsync({
-        content: {
-          title: '📝 할일 알림',
-          body: title,
-          sound: true,
-        },
-        trigger,
-      });
-      return notificationId;
-    } catch (error) {
-      console.error('알림 예약 실패:', error);
-      return undefined;
-    }
+    // 현재 비활성화 - 알림 ID 없이 undefined 반환
+    console.log(`알림 예약 예정: ${title} at ${reminderTime}`);
+    return undefined;
   };
 
-  // 알림 취소
+  // 알림 취소 (Development Build에서 활성화 예정)
   const cancelNotification = async (notificationId?: string) => {
+    // 현재 비활성화
     if (notificationId) {
-      await Notifications.cancelScheduledNotificationAsync(notificationId);
+      console.log(`알림 취소 예정: ${notificationId}`);
     }
   };
 
@@ -567,45 +537,84 @@ export const TodoMemoScreen = () => {
         </View>
       </Modal>
 
-      {/* 날짜 선택기 */}
+      {/* 날짜 선택기 - Development Build에서 활성화 예정 */}
       {showDatePicker && (
-        <DateTimePicker
-          value={newDueDate || new Date()}
-          mode="date"
-          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-          onChange={(event, date) => {
-            setShowDatePicker(false);
-            if (date) {
-              setNewDueDate(date);
-              // 알림 시간도 같은 날짜로 설정
-              if (newReminderTime) {
-                const updated = new Date(date);
-                updated.setHours(newReminderTime.getHours(), newReminderTime.getMinutes());
-                setNewReminderTime(updated);
-              }
-            }
-          }}
-          minimumDate={new Date()}
-        />
+        <Modal
+          visible={showDatePicker}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowDatePicker(false)}
+        >
+          <TouchableOpacity 
+            style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}
+            onPress={() => setShowDatePicker(false)}
+          >
+            <View style={{ backgroundColor: '#FFFFFF', borderRadius: 16, padding: 24, width: '80%' }}>
+              <Text style={{ fontSize: fontSizes.heading2, fontWeight: '600', marginBottom: 16 }}>📅 마감일 설정</Text>
+              <Text style={{ fontSize: fontSizes.body, color: '#666', marginBottom: 16 }}>
+                날짜 선택 기능은 앱 출시 버전에서 지원됩니다.
+              </Text>
+              <TouchableOpacity
+                style={{ backgroundColor: COLORS.primary, paddingVertical: 12, borderRadius: 8 }}
+                onPress={() => {
+                  // 기본값: 내일
+                  const tomorrow = new Date();
+                  tomorrow.setDate(tomorrow.getDate() + 1);
+                  tomorrow.setHours(18, 0, 0, 0);
+                  setNewDueDate(tomorrow);
+                  setShowDatePicker(false);
+                  Alert.alert('마감일 설정', '내일 오후 6시로 설정되었습니다.');
+                }}
+              >
+                <Text style={{ color: '#FFFFFF', textAlign: 'center', fontWeight: '600' }}>내일로 설정</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </Modal>
       )}
 
-      {/* 시간 선택기 */}
+      {/* 시간 선택기 - Development Build에서 활성화 예정 */}
       {showTimePicker && (
-        <DateTimePicker
-          value={newReminderTime || new Date()}
-          mode="datetime"
-          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-          onChange={(event, date) => {
-            setShowTimePicker(false);
-            if (date) {
-              setNewReminderTime(date);
-              if (!newDueDate) {
-                setNewDueDate(date);
-              }
-            }
-          }}
-          minimumDate={new Date()}
-        />
+        <Modal
+          visible={showTimePicker}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowTimePicker(false)}
+        >
+          <TouchableOpacity 
+            style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}
+            onPress={() => setShowTimePicker(false)}
+          >
+            <View style={{ backgroundColor: '#FFFFFF', borderRadius: 16, padding: 24, width: '80%' }}>
+              <Text style={{ fontSize: fontSizes.heading2, fontWeight: '600', marginBottom: 16 }}>⏰ 알림 시간 설정</Text>
+              <Text style={{ fontSize: fontSizes.body, color: '#666', marginBottom: 16 }}>
+                시간 선택 기능은 앱 출시 버전에서 지원됩니다.
+              </Text>
+              <TouchableOpacity
+                style={{ backgroundColor: COLORS.primary, paddingVertical: 12, borderRadius: 8 }}
+                onPress={() => {
+                  // 기본값: 오늘 저녁 7시 또는 내일 아침 9시
+                  const now = new Date();
+                  const reminder = new Date();
+                  if (now.getHours() >= 19) {
+                    reminder.setDate(reminder.getDate() + 1);
+                    reminder.setHours(9, 0, 0, 0);
+                  } else {
+                    reminder.setHours(19, 0, 0, 0);
+                  }
+                  setNewReminderTime(reminder);
+                  if (!newDueDate) {
+                    setNewDueDate(reminder);
+                  }
+                  setShowTimePicker(false);
+                  Alert.alert('알림 설정', `${formatDateTime(reminder)}에 알려드릴게요.`);
+                }}
+              >
+                <Text style={{ color: '#FFFFFF', textAlign: 'center', fontWeight: '600' }}>기본 시간으로 설정</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </Modal>
       )}
     </View>
   );
