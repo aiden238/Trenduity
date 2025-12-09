@@ -201,6 +201,100 @@ async def call_anthropic(messages: List[dict], model: str, system_prompt: str) -
         }
 
 
+# 플랜별 AI 모델 일일 사용 제한
+PLAN_AI_LIMITS = {
+    "FREE": {
+        "quick": 10,      # Gemini
+        "allround": 5,    # GPT-4o-mini
+        "writer": 3,      # Claude
+        "expert": 0,      # GPT-4o (사용 불가)
+        "genius": 0,      # Claude Opus (사용 불가)
+    },
+    "BUDGET": {  # 알뜰 플랜 (9,900원)
+        "quick": 50,
+        "allround": 30,
+        "writer": 20,
+        "expert": 5,
+        "genius": 0,
+    },
+    "SAFE": {  # 안심 플랜 (24,500원)
+        "quick": 100,
+        "allround": 80,
+        "writer": 50,
+        "expert": 20,
+        "genius": 5,
+    },
+    "STRONG": {  # 든든 플랜 (49,900원)
+        "quick": -1,  # 무제한
+        "allround": -1,
+        "writer": -1,
+        "expert": 100,
+        "genius": 30,
+    },
+}
+
+
+async def check_ai_usage_limit(user_id: str, model_id: str, user_plan: str, redis: Optional[Redis]) -> dict:
+    """
+    AI 사용량 제한 체크
+    
+    Returns:
+        {"allowed": True} 또는 {"allowed": False, "message": "...", "remaining": 0}
+    """
+    plan_limits = PLAN_AI_LIMITS.get(user_plan, PLAN_AI_LIMITS["FREE"])
+    daily_limit = plan_limits.get(model_id, 0)
+    
+    # 무제한인 경우
+    if daily_limit == -1:
+        return {"allowed": True, "remaining": -1}
+    
+    # 사용 불가인 경우
+    if daily_limit == 0:
+        model_name = AI_MODEL_CONFIG.get(model_id, {}).get("name", model_id)
+        return {
+            "allowed": False,
+            "message": f"'{model_name}'는 현재 플랜에서 사용할 수 없어요. 플랜을 업그레이드해 보세요!",
+            "remaining": 0
+        }
+    
+    # Redis로 일일 사용량 체크
+    if redis:
+        try:
+            today = __import__('datetime').date.today().isoformat()
+            usage_key = f"ai_usage:{user_id}:{model_id}:{today}"
+            current_usage = redis.get(usage_key)
+            current_count = int(current_usage) if current_usage else 0
+            
+            if current_count >= daily_limit:
+                model_name = AI_MODEL_CONFIG.get(model_id, {}).get("name", model_id)
+                return {
+                    "allowed": False,
+                    "message": f"오늘 '{model_name}' 사용 횟수({daily_limit}회)를 모두 사용하셨어요. 내일 다시 시도하시거나 플랜을 업그레이드해 보세요!",
+                    "remaining": 0
+                }
+            
+            return {"allowed": True, "remaining": daily_limit - current_count - 1}
+        except Exception as e:
+            logger.warning(f"Redis usage check failed: {e}")
+            return {"allowed": True, "remaining": daily_limit}
+    
+    return {"allowed": True, "remaining": daily_limit}
+
+
+async def increment_ai_usage(user_id: str, model_id: str, redis: Optional[Redis]):
+    """AI 사용량 증가"""
+    if redis:
+        try:
+            today = __import__('datetime').date.today().isoformat()
+            usage_key = f"ai_usage:{user_id}:{model_id}:{today}"
+            pipe = redis.pipeline()
+            pipe.incr(usage_key)
+            pipe.expire(usage_key, 86400 * 2)  # 2일 후 만료
+            pipe.execute()
+        except Exception as e:
+            logger.warning(f"Redis usage increment failed: {e}")
+
+
 @router.post("/send")
 async def send_message(
     body: ChatRequest,
@@ -219,6 +313,18 @@ async def send_message(
     """
     user_id = current_user["id"]
     model_id = body.model_id or "allround"
+    user_plan = current_user.get("subscription_plan", "FREE")
+    
+    # AI 사용량 제한 체크
+    usage_check = await check_ai_usage_limit(user_id, model_id, user_plan, redis)
+    if not usage_check.get("allowed"):
+        return {
+            "ok": False,
+            "error": {
+                "code": "AI_LIMIT_EXCEEDED",
+                "message": usage_check.get("message", "AI 사용 제한에 도달했어요.")
+            }
+        }
     
     # 모델 설정 가져오기
     model_config = AI_MODEL_CONFIG.get(model_id, AI_MODEL_CONFIG["allround"])
@@ -228,7 +334,7 @@ async def send_message(
     # 시스템 프롬프트 (커스텀 또는 기본)
     system_prompt = body.system_prompt or SYSTEM_PROMPT
     
-    # 레이트 리미팅
+    # 레이트 리미팅 (분당 제한)
     if redis:
         try:
             rate_limit_key = f"ratelimit:chat:{user_id}:{model_id}"
@@ -272,6 +378,10 @@ async def send_message(
             fallback_model = model_config.get("fallback_model", "gpt-3.5-turbo")
             logger.info(f"Using fallback model: {fallback_model}")
             result = await call_openai(messages, fallback_model)
+        
+        # 성공 시 사용량 증가
+        if result:
+            await increment_ai_usage(user_id, model_id, redis)
         
         # 결과 반환
         if result:

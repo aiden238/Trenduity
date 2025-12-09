@@ -11,8 +11,9 @@ import {
   ActivityIndicator,
   Modal,
   ScrollView,
+  Alert,
 } from 'react-native';
-import { useRoute, RouteProp } from '@react-navigation/native';
+import { useRoute, RouteProp, useNavigation } from '@react-navigation/native';
 import { useA11y } from '../../contexts/A11yContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -93,11 +94,14 @@ type AIChatRouteParams = {
 
 export const AIChatScreen = () => {
   const route = useRoute<RouteProp<{ params: AIChatRouteParams }, 'params'>>();
+  const navigation = useNavigation<any>();
   const initialPrompt = route.params?.initialPrompt;
   const initialModelId = route.params?.modelId;
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [upgradeMessage, setUpgradeMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [selectedModel, setSelectedModel] = useState<AIModel>(
     AI_MODELS.find(m => m.id === initialModelId) || AI_MODELS[2] // 기본: 만능 비서
@@ -181,7 +185,14 @@ export const AIChatScreen = () => {
         };
         setMessages(prev => [...prev, assistantMessage]);
       } else {
-        // 에러 응답
+        // AI 사용 제한 에러 처리
+        if (data.error?.code === 'AI_LIMIT_EXCEEDED') {
+          setUpgradeMessage(data.error.message);
+          setShowUpgradeModal(true);
+          return;
+        }
+        
+        // 일반 에러 응답
         const errorMessage: Message = {
           id: (Date.now() + 1).toString(),
           role: 'assistant',
@@ -284,6 +295,51 @@ export const AIChatScreen = () => {
               </TouchableOpacity>
             ))}
           </ScrollView>
+        </View>
+      </View>
+    </Modal>
+  );
+
+  // 업그레이드 안내 모달
+  const renderUpgradeModal = () => (
+    <Modal
+      visible={showUpgradeModal}
+      animationType="fade"
+      transparent={true}
+      onRequestClose={() => setShowUpgradeModal(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={[styles.upgradeModalContent, { backgroundColor: cardBg }]}>
+          <Text style={{ fontSize: 48, textAlign: 'center', marginBottom: spacing.md }}>⚡</Text>
+          <Text style={[styles.upgradeTitle, { fontSize: fontSizes.heading1, color: textPrimary }]}>
+            AI 사용 제한 안내
+          </Text>
+          <Text style={[styles.upgradeMessage, { fontSize: fontSizes.body, color: textSecondary, marginVertical: spacing.md }]}>
+            {upgradeMessage}
+          </Text>
+          
+          <TouchableOpacity
+            style={[styles.upgradeButton, { backgroundColor: COLORS.primary.main, height: buttonHeight }]}
+            onPress={() => {
+              setShowUpgradeModal(false);
+              navigation.navigate('Subscription');
+            }}
+            accessibilityLabel="플랜 업그레이드 하기"
+          >
+            <Text style={[styles.upgradeButtonText, { fontSize: fontSizes.body }]}>
+              🚀 플랜 업그레이드
+            </Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            style={[styles.laterButton, { height: buttonHeight, marginTop: spacing.sm }]}
+            onPress={() => setShowUpgradeModal(false)}
+            accessibilityLabel="나중에 하기"
+          >
+            <Text style={[styles.laterButtonText, { fontSize: fontSizes.body, color: textSecondary }]}>
+              나중에 할게요
+            </Text>
+          </TouchableOpacity>
         </View>
       </View>
     </Modal>
@@ -458,6 +514,10 @@ export const AIChatScreen = () => {
           </Text>
         </TouchableOpacity>
       </View>
+
+      {/* 모달들 */}
+      {renderModelPicker()}
+      {renderUpgradeModal()}
     </KeyboardAvoidingView>
   );
 };
@@ -593,5 +653,39 @@ const styles = StyleSheet.create({
   sendButton: {
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  // 업그레이드 모달 스타일
+  upgradeModalContent: {
+    width: '90%',
+    maxWidth: 400,
+    borderRadius: 20,
+    padding: 24,
+    alignItems: 'center',
+  },
+  upgradeTitle: {
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  upgradeMessage: {
+    textAlign: 'center',
+    lineHeight: 24,
+  },
+  upgradeButton: {
+    width: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 12,
+  },
+  upgradeButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  laterButton: {
+    width: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  laterButtonText: {
+    fontWeight: '500',
   },
 });
