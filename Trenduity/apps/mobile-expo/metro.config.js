@@ -1,17 +1,18 @@
 const path = require('path');
 
 const projectRoot = __dirname;
-const workspaceRoot = path.resolve(projectRoot, '../..');
 
-// 워크스페이스 루트의 node_modules에서 expo 모듈 로드
-const { getDefaultConfig } = require(path.resolve(workspaceRoot, 'node_modules/expo/metro-config'));
+// mobile-expo가 독립 프로젝트이므로 루트 node_modules 참조 제거
+const { getDefaultConfig } = require('expo/metro-config');
 
 const config = getDefaultConfig(projectRoot);
 
-// node_modules 해석 경로 (워크스페이스 호이스팅 지원)
+// mobile-expo의 node_modules만 사용 (모노레포 workspaces에서 분리됨)
 config.resolver.nodeModulesPaths = [
   path.resolve(projectRoot, 'node_modules'),
-  path.resolve(workspaceRoot, 'node_modules'),
 ];
+
+// 워크스페이스 루트 참조 제거
+config.watchFolders = [];
 
 module.exports = config;
