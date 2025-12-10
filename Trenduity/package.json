@@ -4,12 +4,13 @@
   "private": true,
   "description": "50-70대 AI 학습 앱 - MVP",
   "workspaces": [
-    "packages/*",
-    "apps/*"
+    "packages/*"
   ],
   "overrides": {
     "react": "19.1.0",
-    "react-native": "0.81.5"
+    "react-dom": "19.1.0",
+    "react-native": "0.81.5",
+    "@types/react": "~19.1.10"
   },
   "scripts": {
     "dev": "echo 'Run dev servers - see scripts/dev.sh'",

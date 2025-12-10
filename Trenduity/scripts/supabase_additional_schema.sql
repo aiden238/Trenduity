@@ -127,7 +127,7 @@ CREATE POLICY "Users can delete own todo items"
   ON todo_items FOR DELETE
   USING (auth.uid() = user_id);
 
--- 쓰기는 service_role 또는 인증된 사용자
+-- 쓰기는 service_role 또는 인증된 사용자12
 CREATE POLICY "Authenticated users can insert todo items"
   ON todo_items FOR INSERT
   WITH CHECK (auth.uid() = user_id);
