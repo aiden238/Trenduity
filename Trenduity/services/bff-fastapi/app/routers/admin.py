@@ -1,7 +1,7 @@
 """
-관리자 ?�우??(Admin Router)
+愿由ъ옄 ?쇱슦??(Admin Router)
 
-관리자 ?�용 API - ?�용??관�? ?�계, 콘텐�?관�?
+愿由ъ옄 ?꾩슜 API - ?ъ슜??愿由? ?듦퀎, 肄섑뀗痢?愿由?
 """
 from fastapi import APIRouter, Depends, HTTPException
 from typing import Optional
@@ -25,7 +25,7 @@ router = APIRouter()
 
 
 def verify_admin(current_user: dict):
-    """관리자 권한 ?�인"""
+    """愿由ъ옄 沅뚰븳 ?뺤씤"""
     role = current_user.get("role", "user")
     if role not in ["admin", "super_admin"]:
         raise HTTPException(
@@ -34,7 +34,7 @@ def verify_admin(current_user: dict):
                 "ok": False,
                 "error": {
                     "code": "FORBIDDEN",
-                    "message": "관리자 권한???�요?�요."
+                    "message": "愿由ъ옄 沅뚰븳???꾩슂?댁슂."
                 }
             }
         )
@@ -47,18 +47,18 @@ async def get_admin_stats(
     supabase = Depends(get_supabase)
 ):
     """
-    관리자 ?�?�보???�계
+    愿由ъ옄 ??쒕낫???듦퀎
     
-    - �??�용???? ?�성 ?�용?? ?�규 가??
-    - AI ?�청 ?�계
-    - 구독 ?�랜�??�계
-    - 매출 ?�보
+    - 珥??ъ슜???? ?쒖꽦 ?ъ슜?? ?좉퇋 媛??
+    - AI ?붿껌 ?듦퀎
+    - 援щ룆 ?뚮옖蹂??듦퀎
+    - 留ㅼ텧 ?뺣낫
     """
     verify_admin(current_user)
     
     try:
-        # ?�계 ?�이??(?�제로는 Supabase?�서 집계)
-        # 목업 ?�이??
+        # ?듦퀎 ?곗씠??(?ㅼ젣濡쒕뒗 Supabase?먯꽌 吏묎퀎)
+        # 紐⑹뾽 ?곗씠??
         stats = AdminStatsResponse(
             total_users=1250,
             active_users_today=340,
@@ -71,7 +71,7 @@ async def get_admin_stats(
                 "SAFE": 120,
                 "STRONG": 50,
             },
-            revenue_this_month=12500000,  # 1,250만원
+            revenue_this_month=12500000,  # 1,250留뚯썝
             new_users_today=15,
             new_users_week=85,
         )
@@ -87,7 +87,7 @@ async def get_admin_stats(
             "ok": False,
             "error": {
                 "code": "STATS_ERROR",
-                "message": "?�계�?불러?�는???�패?�어??"
+                "message": "?듦퀎瑜?遺덈윭?ㅻ뒗???ㅽ뙣?덉뼱??"
             }
         }
 
@@ -102,21 +102,21 @@ async def get_users(
     supabase = Depends(get_supabase)
 ):
     """
-    ?�용??목록 조회
+    ?ъ슜??紐⑸줉 議고쉶
     
-    - ?�이지?�이??
-    - 검??(?�름, ?�메??
-    - ?�랜�??�터
+    - ?섏씠吏?ㅼ씠??
+    - 寃??(?대쫫, ?대찓??
+    - ?뚮옖蹂??꾪꽣
     """
     verify_admin(current_user)
     
     try:
-        # 목업 ?�이??(?�제로는 Supabase?�서 조회)
+        # 紐⑹뾽 ?곗씠??(?ㅼ젣濡쒕뒗 Supabase?먯꽌 議고쉶)
         mock_users = [
             AdminUserInfo(
                 id=f"user_{i}",
                 email=f"user{i}@example.com",
-                name=f"?�용??{i}",
+                name=f"?ъ슜??{i}",
                 phone="010-****-1234",
                 role=UserRole.USER,
                 subscription_plan="FREE" if i % 4 == 0 else "BUDGET" if i % 4 == 1 else "SAFE" if i % 4 == 2 else "STRONG",
@@ -128,15 +128,15 @@ async def get_users(
             for i in range(1, 21)
         ]
         
-        # 검???�터 (목업)
+        # 寃???꾪꽣 (紐⑹뾽)
         if search:
             mock_users = [u for u in mock_users if search.lower() in u.name.lower() or search.lower() in u.email.lower()]
         
-        # ?�랜 ?�터
+        # ?뚮옖 ?꾪꽣
         if plan:
             mock_users = [u for u in mock_users if u.subscription_plan == plan]
         
-        # ?�이지?�이??
+        # ?섏씠吏?ㅼ씠??
         start_idx = (page - 1) * page_size
         end_idx = start_idx + page_size
         paginated_users = mock_users[start_idx:end_idx]
@@ -159,7 +159,7 @@ async def get_users(
             "ok": False,
             "error": {
                 "code": "USERS_ERROR",
-                "message": "?�용??목록??불러?�는???�패?�어??"
+                "message": "?ъ슜??紐⑸줉??遺덈윭?ㅻ뒗???ㅽ뙣?덉뼱??"
             }
         }
 
@@ -171,16 +171,16 @@ async def get_user_detail(
     supabase = Depends(get_supabase)
 ):
     """
-    ?�용???�세 ?�보
+    ?ъ슜???곸꽭 ?뺣낫
     """
     verify_admin(current_user)
     
     try:
-        # 목업 ?�이??
+        # 紐⑹뾽 ?곗씠??
         user = AdminUserInfo(
             id=user_id,
             email="user@example.com",
-            name="?�길??,
+            name="?띻만??,
             phone="010-1234-5678",
             role=UserRole.USER,
             subscription_plan="BUDGET",
@@ -201,7 +201,7 @@ async def get_user_detail(
             "ok": False,
             "error": {
                 "code": "USER_NOT_FOUND",
-                "message": "?�용?��? 찾을 ???�어??"
+                "message": "?ъ슜?먮? 李얠쓣 ???놁뼱??"
             }
         }
 
@@ -214,18 +214,18 @@ async def update_user(
     supabase = Depends(get_supabase)
 ):
     """
-    ?�용???�보 ?�정 (??��, ?�랜, ?�성 ?�태)
+    ?ъ슜???뺣낫 ?섏젙 (??븷, ?뚮옖, ?쒖꽦 ?곹깭)
     """
     verify_admin(current_user)
     
     try:
-        # ?�제로는 Supabase ?�데?�트
+        # ?ㅼ젣濡쒕뒗 Supabase ?낅뜲?댄듃
         logger.info(f"Updating user {user_id}: {body.model_dump()}")
         
         return {
             "ok": True,
             "data": {
-                "message": "?�용???�보가 ?�정?�었?�요.",
+                "message": "?ъ슜???뺣낫媛 ?섏젙?섏뿀?댁슂.",
                 "user_id": user_id
             }
         }
@@ -236,7 +236,7 @@ async def update_user(
             "ok": False,
             "error": {
                 "code": "UPDATE_ERROR",
-                "message": "?�용???�보 ?�정???�패?�어??"
+                "message": "?ъ슜???뺣낫 ?섏젙???ㅽ뙣?덉뼱??"
             }
         }
 
@@ -248,47 +248,47 @@ async def get_ai_usage_stats(
     supabase = Depends(get_supabase)
 ):
     """
-    AI ?�용???�계
+    AI ?ъ슜???듦퀎
     
-    - 모델�??�청 ??
-    - ?�용?�별 ?�균
+    - 紐⑤뜽蹂??붿껌 ??
+    - ?ъ슜?먮퀎 ?됯퇏
     """
     verify_admin(current_user)
     
     try:
-        # 목업 ?�이??
+        # 紐⑹뾽 ?곗씠??
         usage_stats = [
             AdminAIUsageStats(
                 model_id="quick",
-                model_name="빠른 ?�반 비서 (Gemini)",
+                model_name="鍮좊Ⅸ ?쇰컲 鍮꾩꽌 (Gemini)",
                 total_requests=5200,
                 unique_users=820,
                 avg_requests_per_user=6.3,
             ),
             AdminAIUsageStats(
                 model_id="allround",
-                model_name="만능 비서 (GPT-4o-mini)",
+                model_name="留뚮뒫 鍮꾩꽌 (GPT-4o-mini)",
                 total_requests=8500,
                 unique_users=950,
                 avg_requests_per_user=8.9,
             ),
             AdminAIUsageStats(
                 model_id="writer",
-                model_name="글?�기 비서 (Claude)",
+                model_name="湲?곌린 鍮꾩꽌 (Claude)",
                 total_requests=3200,
                 unique_users=420,
                 avg_requests_per_user=7.6,
             ),
             AdminAIUsageStats(
                 model_id="expert",
-                model_name="척척박사 비서 (GPT-4o)",
+                model_name="泥숈쿃諛뺤궗 鍮꾩꽌 (GPT-4o)",
                 total_requests=2100,
                 unique_users=280,
                 avg_requests_per_user=7.5,
             ),
             AdminAIUsageStats(
                 model_id="genius",
-                model_name="천재 비서 (Claude Opus)",
+                model_name="泥쒖옱 鍮꾩꽌 (Claude Opus)",
                 total_requests=450,
                 unique_users=50,
                 avg_requests_per_user=9.0,
@@ -309,7 +309,7 @@ async def get_ai_usage_stats(
             "ok": False,
             "error": {
                 "code": "STATS_ERROR",
-                "message": "AI ?�용???�계�?불러?�는???�패?�어??"
+                "message": "AI ?ъ슜???듦퀎瑜?遺덈윭?ㅻ뒗???ㅽ뙣?덉뼱??"
             }
         }
 
@@ -321,18 +321,18 @@ async def create_announcement(
     supabase = Depends(get_supabase)
 ):
     """
-    공�??�항 ?�록
+    怨듭??ы빆 ?깅줉
     """
     verify_admin(current_user)
     
     try:
-        # ?�제로는 Supabase???�??
+        # ?ㅼ젣濡쒕뒗 Supabase?????
         logger.info(f"Creating announcement: {body.title}")
         
         return {
             "ok": True,
             "data": {
-                "message": "공�??�항???�록?�었?�요.",
+                "message": "怨듭??ы빆???깅줉?섏뿀?댁슂.",
                 "id": "announcement_123"
             }
         }
@@ -343,7 +343,7 @@ async def create_announcement(
             "ok": False,
             "error": {
                 "code": "CREATE_ERROR",
-                "message": "공�??�항 ?�록???�패?�어??"
+                "message": "怨듭??ы빆 ?깅줉???ㅽ뙣?덉뼱??"
             }
         }
 
@@ -355,16 +355,16 @@ async def get_announcements(
     current_user: dict = Depends(get_current_user),
 ):
     """
-    공�??�항 목록
+    怨듭??ы빆 紐⑸줉
     """
     verify_admin(current_user)
     
     try:
-        # 목업 ?�이??
+        # 紐⑹뾽 ?곗씠??
         announcements = [
             ContentItem(
                 id=f"ann_{i}",
-                title=f"공�??�항 {i}: ?�비???�데?�트 ?�내",
+                title=f"怨듭??ы빆 {i}: ?쒕퉬???낅뜲?댄듃 ?덈궡",
                 content_type="announcement",
                 status="published",
                 created_at=datetime.now() - timedelta(days=i),
@@ -389,6 +389,6 @@ async def get_announcements(
             "ok": False,
             "error": {
                 "code": "LIST_ERROR",
-                "message": "공�??�항 목록??불러?�는???�패?�어??"
+                "message": "怨듭??ы빆 紐⑸줉??遺덈윭?ㅻ뒗???ㅽ뙣?덉뼱??"
             }
         }

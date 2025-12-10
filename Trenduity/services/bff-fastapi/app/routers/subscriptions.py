@@ -1,7 +1,7 @@
 """
-구독 관�??�우??
+援щ룆 愿由??쇱슦??
 
-?�우�?관�?(?�랜 ?�그?�이?? 구독 관�? AI ?�용??추적) API
+?꾩슦誘?愿由?(?뚮옖 ?낃렇?덉씠?? 援щ룆 愿由? AI ?ъ슜??異붿쟻) API
 """
 from fastapi import APIRouter, Depends, HTTPException
 from typing import Optional, Dict, List
@@ -28,25 +28,25 @@ router = APIRouter()
 
 
 def get_usage_key(user_id: str, model_id: str, date: str) -> str:
-    """?�용??Redis ???�성"""
+    """?ъ슜??Redis ???앹꽦"""
     return f"usage:{user_id}:{model_id}:{date}"
 
 
 def get_today() -> str:
-    """?�늘 ?�짜 문자??""
+    """?ㅻ뒛 ?좎쭨 臾몄옄??""
     return datetime.utcnow().strftime("%Y-%m-%d")
 
 
 @router.get("/plans")
 async def get_plans():
     """
-    ?�용 가?�한 ?�랜 목록 조회
+    ?ъ슜 媛?ν븳 ?뚮옖 紐⑸줉 議고쉶
     
-    모든 구독 ?�랜 ?�보?� 가�? 기능??반환?�니??
+    紐⑤뱺 援щ룆 ?뚮옖 ?뺣낫? 媛寃? 湲곕뒫??諛섑솚?⑸땲??
     """
     plans = []
     for plan_type, info in PLAN_INFO.items():
-        if plan_type != "addon":  # 추�? ?�우미는 별도 ?�시
+        if plan_type != "addon":  # 異붽? ?꾩슦誘몃뒗 蹂꾨룄 ?쒖떆
             plans.append(PlanListItem(
                 plan_type=PlanType(plan_type),
                 name=info["name"],
@@ -76,14 +76,14 @@ async def get_my_subscription(
     supabase = Depends(get_supabase)
 ):
     """
-    ??구독 ?�보 조회
+    ??援щ룆 ?뺣낫 議고쉶
     
-    ?�재 ?�랜, ?�용?? ?��? ?�수 ?�을 반환?�니??
+    ?꾩옱 ?뚮옖, ?ъ슜?? ?⑥? ?잛닔 ?깆쓣 諛섑솚?⑸땲??
     """
     user_id = current_user["id"]
     today = get_today()
     
-    # Supabase?�서 구독 ?�보 조회
+    # Supabase?먯꽌 援щ룆 ?뺣낫 議고쉶
     plan_type = PlanType.FREE
     is_active = True
     expires_at = None
@@ -101,14 +101,14 @@ async def get_my_subscription(
                 is_active = sub.get("is_active", True)
                 expires_at = sub.get("expires_at")
                 
-                # 만료 ?�인
+                # 留뚮즺 ?뺤씤
                 if expires_at:
                     exp_date = datetime.fromisoformat(expires_at.replace("Z", "+00:00"))
                     if exp_date < datetime.utcnow().replace(tzinfo=exp_date.tzinfo):
                         plan_type = PlanType.FREE
                         is_active = False
             
-            # 추�? ?�우�??�인
+            # 異붽? ?꾩슦誘??뺤씤
             addon_result = supabase.table("subscriptions").select("*").eq(
                 "user_id", user_id
             ).eq("plan_type", "addon").eq("is_active", True).execute()
@@ -116,17 +116,17 @@ async def get_my_subscription(
     except Exception as e:
         logger.warning(f"Supabase query failed: {e}")
     
-    # ?�랜 ?�보
+    # ?뚮옖 ?뺣낫
     plan_info = PLAN_INFO.get(plan_type.value, PLAN_INFO["free"])
     limits = PLAN_LIMITS.get(plan_type.value, PLAN_LIMITS["free"]).copy()
     
-    # 추�? ?�우�??�용
+    # 異붽? ?꾩슦誘??곸슜
     if addon_active:
         addon_limits = PLAN_LIMITS["addon"]
         for model_id, addon_count in addon_limits.items():
             limits[model_id] = limits.get(model_id, 0) + addon_count
     
-    # Redis?�서 ?�늘 ?�용??조회
+    # Redis?먯꽌 ?ㅻ뒛 ?ъ슜??議고쉶
     usage: Dict[str, UsageSummary] = {}
     for model_id in ["quick", "allround", "writer", "expert", "genius"]:
         used_count = 0
@@ -146,7 +146,7 @@ async def get_my_subscription(
             remaining=max(0, limit - used_count),
         )
     
-    # ?�수 기능 ?�성???��?
+    # ?뱀닔 湲곕뒫 ?쒖꽦???щ?
     can_use_fintech = plan_type in [PlanType.STANDARD, PlanType.PREMIUM]
     can_use_coaching = plan_type in [PlanType.STANDARD, PlanType.PREMIUM]
     
@@ -174,14 +174,14 @@ async def check_usage(
     supabase = Depends(get_supabase)
 ):
     """
-    AI 모델 ?�용 가???��? ?�인
+    AI 紐⑤뜽 ?ъ슜 媛???щ? ?뺤씤
     
-    ?�용 ???�출?�여 ?��? ?�수�??�인?�니??
+    ?ъ슜 ???몄텧?섏뿬 ?⑥? ?잛닔瑜??뺤씤?⑸땲??
     """
     user_id = current_user["id"]
     today = get_today()
     
-    # ?�랜 조회
+    # ?뚮옖 議고쉶
     plan_type = PlanType.FREE
     addon_active = False
     
@@ -194,7 +194,7 @@ async def check_usage(
             if result.data and len(result.data) > 0:
                 plan_type = PlanType(result.data[0].get("plan_type", "free"))
             
-            # 추�? ?�우�??�인
+            # 異붽? ?꾩슦誘??뺤씤
             addon_result = supabase.table("subscriptions").select("id").eq(
                 "user_id", user_id
             ).eq("plan_type", "addon").eq("is_active", True).execute()
@@ -202,7 +202,7 @@ async def check_usage(
     except Exception as e:
         logger.warning(f"Supabase query failed: {e}")
     
-    # ?�한 계산
+    # ?쒗븳 怨꾩궛
     limits = PLAN_LIMITS.get(plan_type.value, PLAN_LIMITS["free"]).copy()
     if addon_active:
         addon_limits = PLAN_LIMITS["addon"]
@@ -211,7 +211,7 @@ async def check_usage(
     
     limit = limits.get(model_id, 0)
     
-    # ?�용??조회
+    # ?ъ슜??議고쉶
     used_count = 0
     if redis:
         try:
@@ -229,7 +229,7 @@ async def check_usage(
             "ok": False,
             "error": {
                 "code": "USAGE_LIMIT_EXCEEDED",
-                "message": f"?�늘 {_get_model_name(model_id)} ?�용 ?�수�?모두 ?�용?�어?? ?�일 ?�시 ?�용??주세??",
+                "message": f"?ㅻ뒛 {_get_model_name(model_id)} ?ъ슜 ?잛닔瑜?紐⑤몢 ?ъ슜?덉뼱?? ?댁씪 ?ㅼ떆 ?댁슜??二쇱꽭??",
                 "remaining": 0,
                 "limit": limit,
             }
@@ -252,9 +252,9 @@ async def record_usage(
     redis: Optional[Redis] = Depends(get_redis_client)
 ):
     """
-    AI 모델 ?�용??기록
+    AI 紐⑤뜽 ?ъ슜??湲곕줉
     
-    AI ?�출 ?�공 ???�용?�을 기록?�니??
+    AI ?몄텧 ?깃났 ???ъ슜?됱쓣 湲곕줉?⑸땲??
     """
     user_id = current_user["id"]
     today = get_today()
@@ -264,7 +264,7 @@ async def record_usage(
             key = get_usage_key(user_id, model_id, today)
             pipe = redis.pipeline()
             pipe.incr(key)
-            pipe.expire(key, 86400 * 2)  # 2????만료
+            pipe.expire(key, 86400 * 2)  # 2????留뚮즺
             result = pipe.execute()
             new_count = result[0]
             
@@ -294,9 +294,9 @@ async def upgrade_plan(
     supabase = Depends(get_supabase)
 ):
     """
-    ?�랜 ?�그?�이??
+    ?뚮옖 ?낃렇?덉씠??
     
-    ???�랜?�로 ?�그?�이?�합?�다. (결제 ?�동 ???�스?�용)
+    ???뚮옖?쇰줈 ?낃렇?덉씠?쒗빀?덈떎. (寃곗젣 ?곕룞 ???뚯뒪?몄슜)
     """
     user_id = current_user["id"]
     plan_type = body.plan_type
@@ -306,18 +306,18 @@ async def upgrade_plan(
             "ok": False,
             "error": {
                 "code": "SERVICE_UNAVAILABLE",
-                "message": "?�비?��? ?�시?�으�??�용 불�??�니?? ?�시 ???�시 ?�도??주세??"
+                "message": "?쒕퉬?ㅺ? ?쇱떆?곸쑝濡??댁슜 遺덇??⑸땲?? ?좎떆 ???ㅼ떆 ?쒕룄??二쇱꽭??"
             }
         }
     
     try:
-        # 기존 구독 비활?�화
+        # 湲곗〈 援щ룆 鍮꾪솢?깊솕
         supabase.table("subscriptions").update({
             "is_active": False,
             "updated_at": datetime.utcnow().isoformat()
         }).eq("user_id", user_id).eq("is_active", True).neq("plan_type", "addon").execute()
         
-        # ??구독 ?�성
+        # ??援щ룆 ?앹꽦
         expires_at = datetime.utcnow() + timedelta(days=30)
         result = supabase.table("subscriptions").insert({
             "user_id": user_id,
@@ -332,7 +332,7 @@ async def upgrade_plan(
         return {
             "ok": True,
             "data": {
-                "message": f"{plan_info['name']}?�로 ?�그?�이?�되?�어?? ?��",
+                "message": f"{plan_info['name']}?쇰줈 ?낃렇?덉씠?쒕릺?덉뼱?? ?럦",
                 "plan_type": plan_type.value,
                 "plan_name": plan_info["name"],
                 "expires_at": expires_at.isoformat(),
@@ -344,7 +344,7 @@ async def upgrade_plan(
             "ok": False,
             "error": {
                 "code": "UPGRADE_FAILED",
-                "message": "?�그?�이?�에 ?�패?�어?? ?�시 ???�시 ?�도??주세??"
+                "message": "?낃렇?덉씠?쒖뿉 ?ㅽ뙣?덉뼱?? ?좎떆 ???ㅼ떆 ?쒕룄??二쇱꽭??"
             }
         }
 
@@ -355,9 +355,9 @@ async def purchase_addon(
     supabase = Depends(get_supabase)
 ):
     """
-    추�? ?�우�?구매
+    異붽? ?꾩슦誘?援щℓ
     
-    ?�재 ?�랜??추�? ?�용?�을 ?�합?�다.
+    ?꾩옱 ?뚮옖??異붽? ?ъ슜?됱쓣 ?뷀빀?덈떎.
     """
     user_id = current_user["id"]
     
@@ -366,18 +366,18 @@ async def purchase_addon(
             "ok": False,
             "error": {
                 "code": "SERVICE_UNAVAILABLE",
-                "message": "?�비?��? ?�시?�으�??�용 불�??�니??"
+                "message": "?쒕퉬?ㅺ? ?쇱떆?곸쑝濡??댁슜 遺덇??⑸땲??"
             }
         }
     
     try:
-        # 기존 추�? ?�우�?비활?�화
+        # 湲곗〈 異붽? ?꾩슦誘?鍮꾪솢?깊솕
         supabase.table("subscriptions").update({
             "is_active": False,
             "updated_at": datetime.utcnow().isoformat()
         }).eq("user_id", user_id).eq("plan_type", "addon").eq("is_active", True).execute()
         
-        # ??추�? ?�우�??�성
+        # ??異붽? ?꾩슦誘??앹꽦
         expires_at = datetime.utcnow() + timedelta(days=30)
         result = supabase.table("subscriptions").insert({
             "user_id": user_id,
@@ -390,7 +390,7 @@ async def purchase_addon(
         return {
             "ok": True,
             "data": {
-                "message": "추�? ?�우미�? ?�성?�되?�어?? ?��",
+                "message": "異붽? ?꾩슦誘멸? ?쒖꽦?붾릺?덉뼱?? ?럦",
                 "expires_at": expires_at.isoformat(),
             }
         }
@@ -400,18 +400,18 @@ async def purchase_addon(
             "ok": False,
             "error": {
                 "code": "PURCHASE_FAILED",
-                "message": "구매???�패?�어?? ?�시 ???�시 ?�도??주세??"
+                "message": "援щℓ???ㅽ뙣?덉뼱?? ?좎떆 ???ㅼ떆 ?쒕룄??二쇱꽭??"
             }
         }
 
 
 def _get_model_name(model_id: str) -> str:
-    """모델 ID�??��? ?�름?�로 변??""
+    """紐⑤뜽 ID瑜??쒓? ?대쫫?쇰줈 蹂??""
     names = {
-        "quick": "빠른 ?�반 비서",
-        "allround": "만능 비서",
-        "writer": "글?�기 비서",
-        "expert": "척척박사 비서",
-        "genius": "천재 비서",
+        "quick": "鍮좊Ⅸ ?쇰컲 鍮꾩꽌",
+        "allround": "留뚮뒫 鍮꾩꽌",
+        "writer": "湲?곌린 鍮꾩꽌",
+        "expert": "泥숈쿃諛뺤궗 鍮꾩꽌",
+        "genius": "泥쒖옱 鍮꾩꽌",
     }
     return names.get(model_id, model_id)

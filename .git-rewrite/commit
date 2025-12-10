@@ -1,0 +1,16 @@
+tree 0d0b93fc7ab8169743f7ba06a407ca59ed9ed5be
+parent fa247ccef039af6e8b976d35fd73612668086be7
+author Songbyeongcheol <songbyeongcheol84@gmail.com> 1765239273 +0900
+committer Songbyeongcheol <songbyeongcheol84@gmail.com> 1765239273 +0900
+
+feat: AI 사용량 제한 및 업그레이드 모달 구현
+
+- chat.py에 플랜별 AI 모델 일일 사용 제한 추가
+  - FREE: quick 10회, allround 5회, writer 3회
+  - BUDGET: quick 50회, allround 30회, writer 20회, expert 5회
+  - SAFE: quick 100회, allround 80회, writer 50회, expert 20회, genius 5회
+  - STRONG: quick/allround/writer 무제한, expert 100회, genius 30회
+- check_ai_usage_limit() 함수로 Redis 기반 일일 사용량 체크
+- increment_ai_usage() 함수로 사용량 자동 증가
+- AIChatScreen에 업그레이드 안내 모달 추가
+- AI_LIMIT_EXCEEDED 에러 시 플랜 업그레이드 유도
