@@ -1,7 +1,7 @@
 """
-구독 관리 라우터
+구독 관�??�우??
 
-도우미 관리 (플랜 업그레이드, 구독 관리, AI 사용량 추적) API
+?�우�?관�?(?�랜 ?�그?�이?? 구독 관�? AI ?�용??추적) API
 """
 from fastapi import APIRouter, Depends, HTTPException
 from typing import Optional, Dict, List
@@ -10,7 +10,7 @@ from redis import Redis
 import logging
 import json
 
-from app.core.deps import get_current_user, get_redis_client, get_supabase_client
+from app.core.deps import get_current_user, get_redis_client, get_supabase
 from app.schemas.subscription import (
     PlanType,
     AIModelType,
@@ -28,25 +28,25 @@ router = APIRouter()
 
 
 def get_usage_key(user_id: str, model_id: str, date: str) -> str:
-    """사용량 Redis 키 생성"""
+    """?�용??Redis ???�성"""
     return f"usage:{user_id}:{model_id}:{date}"
 
 
 def get_today() -> str:
-    """오늘 날짜 문자열"""
+    """?�늘 ?�짜 문자??""
     return datetime.utcnow().strftime("%Y-%m-%d")
 
 
 @router.get("/plans")
 async def get_plans():
     """
-    사용 가능한 플랜 목록 조회
+    ?�용 가?�한 ?�랜 목록 조회
     
-    모든 구독 플랜 정보와 가격, 기능을 반환합니다.
+    모든 구독 ?�랜 ?�보?� 가�? 기능??반환?�니??
     """
     plans = []
     for plan_type, info in PLAN_INFO.items():
-        if plan_type != "addon":  # 추가 도우미는 별도 표시
+        if plan_type != "addon":  # 추�? ?�우미는 별도 ?�시
             plans.append(PlanListItem(
                 plan_type=PlanType(plan_type),
                 name=info["name"],
@@ -73,17 +73,17 @@ async def get_plans():
 async def get_my_subscription(
     current_user: dict = Depends(get_current_user),
     redis: Optional[Redis] = Depends(get_redis_client),
-    supabase = Depends(get_supabase_client)
+    supabase = Depends(get_supabase)
 ):
     """
-    내 구독 정보 조회
+    ??구독 ?�보 조회
     
-    현재 플랜, 사용량, 남은 횟수 등을 반환합니다.
+    ?�재 ?�랜, ?�용?? ?��? ?�수 ?�을 반환?�니??
     """
     user_id = current_user["id"]
     today = get_today()
     
-    # Supabase에서 구독 정보 조회
+    # Supabase?�서 구독 ?�보 조회
     plan_type = PlanType.FREE
     is_active = True
     expires_at = None
@@ -101,14 +101,14 @@ async def get_my_subscription(
                 is_active = sub.get("is_active", True)
                 expires_at = sub.get("expires_at")
                 
-                # 만료 확인
+                # 만료 ?�인
                 if expires_at:
                     exp_date = datetime.fromisoformat(expires_at.replace("Z", "+00:00"))
                     if exp_date < datetime.utcnow().replace(tzinfo=exp_date.tzinfo):
                         plan_type = PlanType.FREE
                         is_active = False
             
-            # 추가 도우미 확인
+            # 추�? ?�우�??�인
             addon_result = supabase.table("subscriptions").select("*").eq(
                 "user_id", user_id
             ).eq("plan_type", "addon").eq("is_active", True).execute()
@@ -116,17 +116,17 @@ async def get_my_subscription(
     except Exception as e:
         logger.warning(f"Supabase query failed: {e}")
     
-    # 플랜 정보
+    # ?�랜 ?�보
     plan_info = PLAN_INFO.get(plan_type.value, PLAN_INFO["free"])
     limits = PLAN_LIMITS.get(plan_type.value, PLAN_LIMITS["free"]).copy()
     
-    # 추가 도우미 적용
+    # 추�? ?�우�??�용
     if addon_active:
         addon_limits = PLAN_LIMITS["addon"]
         for model_id, addon_count in addon_limits.items():
             limits[model_id] = limits.get(model_id, 0) + addon_count
     
-    # Redis에서 오늘 사용량 조회
+    # Redis?�서 ?�늘 ?�용??조회
     usage: Dict[str, UsageSummary] = {}
     for model_id in ["quick", "allround", "writer", "expert", "genius"]:
         used_count = 0
@@ -146,7 +146,7 @@ async def get_my_subscription(
             remaining=max(0, limit - used_count),
         )
     
-    # 특수 기능 활성화 여부
+    # ?�수 기능 ?�성???��?
     can_use_fintech = plan_type in [PlanType.STANDARD, PlanType.PREMIUM]
     can_use_coaching = plan_type in [PlanType.STANDARD, PlanType.PREMIUM]
     
@@ -171,17 +171,17 @@ async def check_usage(
     model_id: str,
     current_user: dict = Depends(get_current_user),
     redis: Optional[Redis] = Depends(get_redis_client),
-    supabase = Depends(get_supabase_client)
+    supabase = Depends(get_supabase)
 ):
     """
-    AI 모델 사용 가능 여부 확인
+    AI 모델 ?�용 가???��? ?�인
     
-    사용 전 호출하여 남은 횟수를 확인합니다.
+    ?�용 ???�출?�여 ?��? ?�수�??�인?�니??
     """
     user_id = current_user["id"]
     today = get_today()
     
-    # 플랜 조회
+    # ?�랜 조회
     plan_type = PlanType.FREE
     addon_active = False
     
@@ -194,7 +194,7 @@ async def check_usage(
             if result.data and len(result.data) > 0:
                 plan_type = PlanType(result.data[0].get("plan_type", "free"))
             
-            # 추가 도우미 확인
+            # 추�? ?�우�??�인
             addon_result = supabase.table("subscriptions").select("id").eq(
                 "user_id", user_id
             ).eq("plan_type", "addon").eq("is_active", True).execute()
@@ -202,7 +202,7 @@ async def check_usage(
     except Exception as e:
         logger.warning(f"Supabase query failed: {e}")
     
-    # 제한 계산
+    # ?�한 계산
     limits = PLAN_LIMITS.get(plan_type.value, PLAN_LIMITS["free"]).copy()
     if addon_active:
         addon_limits = PLAN_LIMITS["addon"]
@@ -211,7 +211,7 @@ async def check_usage(
     
     limit = limits.get(model_id, 0)
     
-    # 사용량 조회
+    # ?�용??조회
     used_count = 0
     if redis:
         try:
@@ -229,7 +229,7 @@ async def check_usage(
             "ok": False,
             "error": {
                 "code": "USAGE_LIMIT_EXCEEDED",
-                "message": f"오늘 {_get_model_name(model_id)} 사용 횟수를 모두 사용했어요. 내일 다시 이용해 주세요.",
+                "message": f"?�늘 {_get_model_name(model_id)} ?�용 ?�수�?모두 ?�용?�어?? ?�일 ?�시 ?�용??주세??",
                 "remaining": 0,
                 "limit": limit,
             }
@@ -252,9 +252,9 @@ async def record_usage(
     redis: Optional[Redis] = Depends(get_redis_client)
 ):
     """
-    AI 모델 사용량 기록
+    AI 모델 ?�용??기록
     
-    AI 호출 성공 후 사용량을 기록합니다.
+    AI ?�출 ?�공 ???�용?�을 기록?�니??
     """
     user_id = current_user["id"]
     today = get_today()
@@ -264,7 +264,7 @@ async def record_usage(
             key = get_usage_key(user_id, model_id, today)
             pipe = redis.pipeline()
             pipe.incr(key)
-            pipe.expire(key, 86400 * 2)  # 2일 후 만료
+            pipe.expire(key, 86400 * 2)  # 2????만료
             result = pipe.execute()
             new_count = result[0]
             
@@ -291,12 +291,12 @@ async def record_usage(
 async def upgrade_plan(
     body: SubscriptionCreate,
     current_user: dict = Depends(get_current_user),
-    supabase = Depends(get_supabase_client)
+    supabase = Depends(get_supabase)
 ):
     """
-    플랜 업그레이드
+    ?�랜 ?�그?�이??
     
-    새 플랜으로 업그레이드합니다. (결제 연동 전 테스트용)
+    ???�랜?�로 ?�그?�이?�합?�다. (결제 ?�동 ???�스?�용)
     """
     user_id = current_user["id"]
     plan_type = body.plan_type
@@ -306,18 +306,18 @@ async def upgrade_plan(
             "ok": False,
             "error": {
                 "code": "SERVICE_UNAVAILABLE",
-                "message": "서비스가 일시적으로 이용 불가합니다. 잠시 후 다시 시도해 주세요."
+                "message": "?�비?��? ?�시?�으�??�용 불�??�니?? ?�시 ???�시 ?�도??주세??"
             }
         }
     
     try:
-        # 기존 구독 비활성화
+        # 기존 구독 비활?�화
         supabase.table("subscriptions").update({
             "is_active": False,
             "updated_at": datetime.utcnow().isoformat()
         }).eq("user_id", user_id).eq("is_active", True).neq("plan_type", "addon").execute()
         
-        # 새 구독 생성
+        # ??구독 ?�성
         expires_at = datetime.utcnow() + timedelta(days=30)
         result = supabase.table("subscriptions").insert({
             "user_id": user_id,
@@ -332,7 +332,7 @@ async def upgrade_plan(
         return {
             "ok": True,
             "data": {
-                "message": f"{plan_info['name']}으로 업그레이드되었어요! 🎉",
+                "message": f"{plan_info['name']}?�로 ?�그?�이?�되?�어?? ?��",
                 "plan_type": plan_type.value,
                 "plan_name": plan_info["name"],
                 "expires_at": expires_at.isoformat(),
@@ -344,7 +344,7 @@ async def upgrade_plan(
             "ok": False,
             "error": {
                 "code": "UPGRADE_FAILED",
-                "message": "업그레이드에 실패했어요. 잠시 후 다시 시도해 주세요."
+                "message": "?�그?�이?�에 ?�패?�어?? ?�시 ???�시 ?�도??주세??"
             }
         }
 
@@ -352,12 +352,12 @@ async def upgrade_plan(
 @router.post("/purchase-addon")
 async def purchase_addon(
     current_user: dict = Depends(get_current_user),
-    supabase = Depends(get_supabase_client)
+    supabase = Depends(get_supabase)
 ):
     """
-    추가 도우미 구매
+    추�? ?�우�?구매
     
-    현재 플랜에 추가 사용량을 더합니다.
+    ?�재 ?�랜??추�? ?�용?�을 ?�합?�다.
     """
     user_id = current_user["id"]
     
@@ -366,18 +366,18 @@ async def purchase_addon(
             "ok": False,
             "error": {
                 "code": "SERVICE_UNAVAILABLE",
-                "message": "서비스가 일시적으로 이용 불가합니다."
+                "message": "?�비?��? ?�시?�으�??�용 불�??�니??"
             }
         }
     
     try:
-        # 기존 추가 도우미 비활성화
+        # 기존 추�? ?�우�?비활?�화
         supabase.table("subscriptions").update({
             "is_active": False,
             "updated_at": datetime.utcnow().isoformat()
         }).eq("user_id", user_id).eq("plan_type", "addon").eq("is_active", True).execute()
         
-        # 새 추가 도우미 생성
+        # ??추�? ?�우�??�성
         expires_at = datetime.utcnow() + timedelta(days=30)
         result = supabase.table("subscriptions").insert({
             "user_id": user_id,
@@ -390,7 +390,7 @@ async def purchase_addon(
         return {
             "ok": True,
             "data": {
-                "message": "추가 도우미가 활성화되었어요! 🎉",
+                "message": "추�? ?�우미�? ?�성?�되?�어?? ?��",
                 "expires_at": expires_at.isoformat(),
             }
         }
@@ -400,17 +400,17 @@ async def purchase_addon(
             "ok": False,
             "error": {
                 "code": "PURCHASE_FAILED",
-                "message": "구매에 실패했어요. 잠시 후 다시 시도해 주세요."
+                "message": "구매???�패?�어?? ?�시 ???�시 ?�도??주세??"
             }
         }
 
 
 def _get_model_name(model_id: str) -> str:
-    """모델 ID를 한글 이름으로 변환"""
+    """모델 ID�??��? ?�름?�로 변??""
     names = {
-        "quick": "빠른 일반 비서",
+        "quick": "빠른 ?�반 비서",
         "allround": "만능 비서",
-        "writer": "글쓰기 비서",
+        "writer": "글?�기 비서",
         "expert": "척척박사 비서",
         "genius": "천재 비서",
     }

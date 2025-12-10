@@ -1,14 +1,14 @@
 """
-관리자 라우터 (Admin Router)
+관리자 ?�우??(Admin Router)
 
-관리자 전용 API - 사용자 관리, 통계, 콘텐츠 관리
+관리자 ?�용 API - ?�용??관�? ?�계, 콘텐�?관�?
 """
 from fastapi import APIRouter, Depends, HTTPException
 from typing import Optional
 from datetime import datetime, timedelta
 import logging
 
-from app.core.deps import get_current_user, get_supabase_client
+from app.core.deps import get_current_user, get_supabase
 from app.schemas.admin import (
     AdminUserInfo,
     AdminUserListResponse,
@@ -25,7 +25,7 @@ router = APIRouter()
 
 
 def verify_admin(current_user: dict):
-    """관리자 권한 확인"""
+    """관리자 권한 ?�인"""
     role = current_user.get("role", "user")
     if role not in ["admin", "super_admin"]:
         raise HTTPException(
@@ -34,7 +34,7 @@ def verify_admin(current_user: dict):
                 "ok": False,
                 "error": {
                     "code": "FORBIDDEN",
-                    "message": "관리자 권한이 필요해요."
+                    "message": "관리자 권한???�요?�요."
                 }
             }
         )
@@ -44,21 +44,21 @@ def verify_admin(current_user: dict):
 @router.get("/stats")
 async def get_admin_stats(
     current_user: dict = Depends(get_current_user),
-    supabase = Depends(get_supabase_client)
+    supabase = Depends(get_supabase)
 ):
     """
-    관리자 대시보드 통계
+    관리자 ?�?�보???�계
     
-    - 총 사용자 수, 활성 사용자, 신규 가입
-    - AI 요청 통계
-    - 구독 플랜별 통계
-    - 매출 정보
+    - �??�용???? ?�성 ?�용?? ?�규 가??
+    - AI ?�청 ?�계
+    - 구독 ?�랜�??�계
+    - 매출 ?�보
     """
     verify_admin(current_user)
     
     try:
-        # 통계 데이터 (실제로는 Supabase에서 집계)
-        # 목업 데이터
+        # ?�계 ?�이??(?�제로는 Supabase?�서 집계)
+        # 목업 ?�이??
         stats = AdminStatsResponse(
             total_users=1250,
             active_users_today=340,
@@ -87,7 +87,7 @@ async def get_admin_stats(
             "ok": False,
             "error": {
                 "code": "STATS_ERROR",
-                "message": "통계를 불러오는데 실패했어요."
+                "message": "?�계�?불러?�는???�패?�어??"
             }
         }
 
@@ -99,24 +99,24 @@ async def get_users(
     search: Optional[str] = None,
     plan: Optional[str] = None,
     current_user: dict = Depends(get_current_user),
-    supabase = Depends(get_supabase_client)
+    supabase = Depends(get_supabase)
 ):
     """
-    사용자 목록 조회
+    ?�용??목록 조회
     
-    - 페이지네이션
-    - 검색 (이름, 이메일)
-    - 플랜별 필터
+    - ?�이지?�이??
+    - 검??(?�름, ?�메??
+    - ?�랜�??�터
     """
     verify_admin(current_user)
     
     try:
-        # 목업 데이터 (실제로는 Supabase에서 조회)
+        # 목업 ?�이??(?�제로는 Supabase?�서 조회)
         mock_users = [
             AdminUserInfo(
                 id=f"user_{i}",
                 email=f"user{i}@example.com",
-                name=f"사용자 {i}",
+                name=f"?�용??{i}",
                 phone="010-****-1234",
                 role=UserRole.USER,
                 subscription_plan="FREE" if i % 4 == 0 else "BUDGET" if i % 4 == 1 else "SAFE" if i % 4 == 2 else "STRONG",
@@ -128,15 +128,15 @@ async def get_users(
             for i in range(1, 21)
         ]
         
-        # 검색 필터 (목업)
+        # 검???�터 (목업)
         if search:
             mock_users = [u for u in mock_users if search.lower() in u.name.lower() or search.lower() in u.email.lower()]
         
-        # 플랜 필터
+        # ?�랜 ?�터
         if plan:
             mock_users = [u for u in mock_users if u.subscription_plan == plan]
         
-        # 페이지네이션
+        # ?�이지?�이??
         start_idx = (page - 1) * page_size
         end_idx = start_idx + page_size
         paginated_users = mock_users[start_idx:end_idx]
@@ -159,7 +159,7 @@ async def get_users(
             "ok": False,
             "error": {
                 "code": "USERS_ERROR",
-                "message": "사용자 목록을 불러오는데 실패했어요."
+                "message": "?�용??목록??불러?�는???�패?�어??"
             }
         }
 
@@ -168,19 +168,19 @@ async def get_users(
 async def get_user_detail(
     user_id: str,
     current_user: dict = Depends(get_current_user),
-    supabase = Depends(get_supabase_client)
+    supabase = Depends(get_supabase)
 ):
     """
-    사용자 상세 정보
+    ?�용???�세 ?�보
     """
     verify_admin(current_user)
     
     try:
-        # 목업 데이터
+        # 목업 ?�이??
         user = AdminUserInfo(
             id=user_id,
             email="user@example.com",
-            name="홍길동",
+            name="?�길??,
             phone="010-1234-5678",
             role=UserRole.USER,
             subscription_plan="BUDGET",
@@ -201,7 +201,7 @@ async def get_user_detail(
             "ok": False,
             "error": {
                 "code": "USER_NOT_FOUND",
-                "message": "사용자를 찾을 수 없어요."
+                "message": "?�용?��? 찾을 ???�어??"
             }
         }
 
@@ -211,21 +211,21 @@ async def update_user(
     user_id: str,
     body: UpdateUserRequest,
     current_user: dict = Depends(get_current_user),
-    supabase = Depends(get_supabase_client)
+    supabase = Depends(get_supabase)
 ):
     """
-    사용자 정보 수정 (역할, 플랜, 활성 상태)
+    ?�용???�보 ?�정 (??��, ?�랜, ?�성 ?�태)
     """
     verify_admin(current_user)
     
     try:
-        # 실제로는 Supabase 업데이트
+        # ?�제로는 Supabase ?�데?�트
         logger.info(f"Updating user {user_id}: {body.model_dump()}")
         
         return {
             "ok": True,
             "data": {
-                "message": "사용자 정보가 수정되었어요.",
+                "message": "?�용???�보가 ?�정?�었?�요.",
                 "user_id": user_id
             }
         }
@@ -236,7 +236,7 @@ async def update_user(
             "ok": False,
             "error": {
                 "code": "UPDATE_ERROR",
-                "message": "사용자 정보 수정에 실패했어요."
+                "message": "?�용???�보 ?�정???�패?�어??"
             }
         }
 
@@ -245,22 +245,22 @@ async def update_user(
 async def get_ai_usage_stats(
     days: int = 7,
     current_user: dict = Depends(get_current_user),
-    supabase = Depends(get_supabase_client)
+    supabase = Depends(get_supabase)
 ):
     """
-    AI 사용량 통계
+    AI ?�용???�계
     
-    - 모델별 요청 수
-    - 사용자별 평균
+    - 모델�??�청 ??
+    - ?�용?�별 ?�균
     """
     verify_admin(current_user)
     
     try:
-        # 목업 데이터
+        # 목업 ?�이??
         usage_stats = [
             AdminAIUsageStats(
                 model_id="quick",
-                model_name="빠른 일반 비서 (Gemini)",
+                model_name="빠른 ?�반 비서 (Gemini)",
                 total_requests=5200,
                 unique_users=820,
                 avg_requests_per_user=6.3,
@@ -274,7 +274,7 @@ async def get_ai_usage_stats(
             ),
             AdminAIUsageStats(
                 model_id="writer",
-                model_name="글쓰기 비서 (Claude)",
+                model_name="글?�기 비서 (Claude)",
                 total_requests=3200,
                 unique_users=420,
                 avg_requests_per_user=7.6,
@@ -309,7 +309,7 @@ async def get_ai_usage_stats(
             "ok": False,
             "error": {
                 "code": "STATS_ERROR",
-                "message": "AI 사용량 통계를 불러오는데 실패했어요."
+                "message": "AI ?�용???�계�?불러?�는???�패?�어??"
             }
         }
 
@@ -318,21 +318,21 @@ async def get_ai_usage_stats(
 async def create_announcement(
     body: CreateAnnouncementRequest,
     current_user: dict = Depends(get_current_user),
-    supabase = Depends(get_supabase_client)
+    supabase = Depends(get_supabase)
 ):
     """
-    공지사항 등록
+    공�??�항 ?�록
     """
     verify_admin(current_user)
     
     try:
-        # 실제로는 Supabase에 저장
+        # ?�제로는 Supabase???�??
         logger.info(f"Creating announcement: {body.title}")
         
         return {
             "ok": True,
             "data": {
-                "message": "공지사항이 등록되었어요.",
+                "message": "공�??�항???�록?�었?�요.",
                 "id": "announcement_123"
             }
         }
@@ -343,7 +343,7 @@ async def create_announcement(
             "ok": False,
             "error": {
                 "code": "CREATE_ERROR",
-                "message": "공지사항 등록에 실패했어요."
+                "message": "공�??�항 ?�록???�패?�어??"
             }
         }
 
@@ -355,16 +355,16 @@ async def get_announcements(
     current_user: dict = Depends(get_current_user),
 ):
     """
-    공지사항 목록
+    공�??�항 목록
     """
     verify_admin(current_user)
     
     try:
-        # 목업 데이터
+        # 목업 ?�이??
         announcements = [
             ContentItem(
                 id=f"ann_{i}",
-                title=f"공지사항 {i}: 서비스 업데이트 안내",
+                title=f"공�??�항 {i}: ?�비???�데?�트 ?�내",
                 content_type="announcement",
                 status="published",
                 created_at=datetime.now() - timedelta(days=i),
@@ -389,6 +389,6 @@ async def get_announcements(
             "ok": False,
             "error": {
                 "code": "LIST_ERROR",
-                "message": "공지사항 목록을 불러오는데 실패했어요."
+                "message": "공�??�항 목록??불러?�는???�패?�어??"
             }
         }
