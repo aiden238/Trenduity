@@ -1,16 +1,17 @@
 """
 강좌(Courses) API 라우터
-EBSI 스타일 학습 시스템
+EBSI 스타일 학습 시스템 - Supabase 버전
 """
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 from typing import List, Optional, Any
 from datetime import datetime
+from supabase import Client
 
-from app.core.deps import get_db_connection
+from app.core.deps import get_supabase
 
-router = APIRouter(prefix="/v1/courses", tags=["Courses"])
+router = APIRouter()
 
 
 # ============================================================
@@ -72,7 +73,8 @@ class EnvelopeResponse(BaseModel):
 @router.get("/", response_model=EnvelopeResponse)
 async def get_courses(
     category: Optional[str] = Query(None, description="카테고리 필터"),
-    user_id: Optional[str] = None
+    user_id: Optional[str] = None,
+    supabase: Client = Depends(get_supabase)
 ):
     """
     강좌 목록 조회
@@ -80,49 +82,44 @@ async def get_courses(
     - 모든 강좌 또는 카테고리별 필터링
     - 사용자 진행 상황 포함 (completed_lectures, last_watched_lecture)
     """
-    # 개발 모드에서는 user_id가 없으면 기본값 사용
+    if not supabase:
+        raise HTTPException(status_code=503, detail={
+            "ok": False,
+            "error": {"code": "SUPABASE_UNAVAILABLE", "message": "데이터베이스 연결이 불가능해요"}
+        })
+    
     if not user_id:
         user_id = "demo-user"
     
-    conn = get_db_connection()
     try:
-        with conn.cursor() as cur:
-            # 강좌 목록 조회
-            query = """
-                SELECT 
-                    c.*,
-                    COALESCE(p.completed_lectures, 0) as user_completed_lectures,
-                    COALESCE(p.last_watched_lecture, 0) as user_last_watched
-                FROM courses c
-                LEFT JOIN user_course_progress p ON c.id = p.course_id AND p.user_id = %s
-            """
-            params = [user_id]
-            
-            if category:
-                query += " WHERE c.category = %s"
-                params.append(category)
-            
-            query += " ORDER BY c.created_at DESC"
-            
-            cur.execute(query, params)
-            rows = cur.fetchall()
-            
-            courses = []
-            for row in rows:
-                courses.append({
-                    "id": row[0],
-                    "title": row[1],
-                    "thumbnail": row[2],
-                    "description": row[3],
-                    "category": row[4],
-                    "total_lectures": row[5],
-                    "created_at": row[6].isoformat() if row[6] else None,
-                    "updated_at": row[7].isoformat() if row[7] else None,
-                    "user_completed_lectures": row[8],
-                    "user_last_watched": row[9]
-                })
-            
-            return {"ok": True, "data": {"courses": courses}}
+        # 강좌 목록 조회
+        query = supabase.table("courses").select("*")
+        
+        if category:
+            query = query.eq("category", category)
+        
+        courses_result = query.order("created_at", desc=True).execute()
+        
+        # 사용자 진행 상황 조회
+        progress_result = supabase.table("user_course_progress")\
+            .select("*")\
+            .eq("user_id", user_id)\
+            .execute()
+        
+        # 진행 상황을 course_id로 매핑
+        progress_map = {p["course_id"]: p for p in progress_result.data}
+        
+        # 응답 데이터 구성
+        courses = []
+        for course in courses_result.data:
+            progress = progress_map.get(course["id"], {})
+            courses.append({
+                **course,
+                "user_completed_lectures": progress.get("completed_lectures", 0),
+                "user_last_watched": progress.get("last_watched_lecture", 0)
+            })
+        
+        return {"ok": True, "data": {"courses": courses}}
     
     except Exception as e:
         raise HTTPException(
@@ -135,14 +132,13 @@ async def get_courses(
                 }
             }
         )
-    finally:
-        conn.close()
 
 
 @router.get("/{course_id}", response_model=EnvelopeResponse)
 async def get_course_detail(
     course_id: str,
-    user_id: Optional[str] = None
+    user_id: Optional[str] = None,
+    supabase: Client = Depends(get_supabase)
 ):
     """
     강좌 상세 정보 조회 (강의 목록 포함)
@@ -151,74 +147,54 @@ async def get_course_detail(
     - 전체 강의 목록 (1강, 2강, 3강...)
     - 사용자 진행 상황
     """
+    if not supabase:
+        raise HTTPException(status_code=503, detail={
+            "ok": False,
+            "error": {"code": "SUPABASE_UNAVAILABLE", "message": "데이터베이스 연결이 불가능해요"}
+        })
+    
     if not user_id:
         user_id = "demo-user"
     
-    conn = get_db_connection()
     try:
-        with conn.cursor() as cur:
-            # 강좌 정보
-            cur.execute("""
-                SELECT * FROM courses WHERE id = %s
-            """, (course_id,))
-            course_row = cur.fetchone()
-            
-            if not course_row:
-                raise HTTPException(
-                    status_code=404,
-                    detail={
-                        "ok": False,
-                        "error": {
-                            "code": "COURSE_NOT_FOUND",
-                            "message": "강좌를 찾을 수 없어요"
-                        }
+        # 강좌 정보
+        course_result = supabase.table("courses").select("*").eq("id", course_id).single().execute()
+        
+        if not course_result.data:
+            raise HTTPException(
+                status_code=404,
+                detail={
+                    "ok": False,
+                    "error": {
+                        "code": "COURSE_NOT_FOUND",
+                        "message": "강좌를 찾을 수 없어요"
                     }
-                )
-            
-            # 강의 목록
-            cur.execute("""
-                SELECT * FROM lectures 
-                WHERE course_id = %s 
-                ORDER BY lecture_number ASC
-            """, (course_id,))
-            lecture_rows = cur.fetchall()
-            
-            # 사용자 진행 상황
-            cur.execute("""
-                SELECT * FROM user_course_progress 
-                WHERE user_id = %s AND course_id = %s
-            """, (user_id, course_id))
-            progress_row = cur.fetchone()
-            
-            course_data = {
-                "id": course_row[0],
-                "title": course_row[1],
-                "thumbnail": course_row[2],
-                "description": course_row[3],
-                "category": course_row[4],
-                "total_lectures": course_row[5],
-                "created_at": course_row[6].isoformat() if course_row[6] else None,
-                "updated_at": course_row[7].isoformat() if course_row[7] else None,
-                "lectures": [
-                    {
-                        "id": row[0],
-                        "lecture_number": row[2],
-                        "title": row[3],
-                        "duration": row[4],
-                        "script": row[5],
-                        "panels": row[6] if row[6] else [],
-                        "created_at": row[7].isoformat() if row[7] else None
-                    }
-                    for row in lecture_rows
-                ],
-                "user_progress": {
-                    "last_watched_lecture": progress_row[3] if progress_row else 0,
-                    "completed_lectures": progress_row[4] if progress_row else 0,
-                    "completed_at": progress_row[5].isoformat() if progress_row and progress_row[5] else None
-                } if progress_row else None
-            }
-            
-            return {"ok": True, "data": course_data}
+                }
+            )
+        
+        # 강의 목록
+        lectures_result = supabase.table("lectures")\
+            .select("*")\
+            .eq("course_id", course_id)\
+            .order("lecture_number", desc=False)\
+            .execute()
+        
+        # 사용자 진행 상황
+        progress_result = supabase.table("user_course_progress")\
+            .select("*")\
+            .eq("user_id", user_id)\
+            .eq("course_id", course_id)\
+            .execute()
+        
+        progress = progress_result.data[0] if progress_result.data else None
+        
+        course_data = {
+            **course_result.data,
+            "lectures": lectures_result.data,
+            "user_progress": progress
+        }
+        
+        return {"ok": True, "data": course_data}
     
     except HTTPException:
         raise
@@ -233,15 +209,14 @@ async def get_course_detail(
                 }
             }
         )
-    finally:
-        conn.close()
 
 
 @router.get("/{course_id}/lectures/{lecture_number}", response_model=EnvelopeResponse)
 async def get_lecture(
     course_id: str,
     lecture_number: int,
-    user_id: Optional[str] = None
+    user_id: Optional[str] = None,
+    supabase: Client = Depends(get_supabase)
 ):
     """
     특정 강의 조회
@@ -249,42 +224,36 @@ async def get_lecture(
     - 강의 스크립트 (TTS용)
     - 패널 데이터 (화면 구성)
     """
+    if not supabase:
+        raise HTTPException(status_code=503, detail={
+            "ok": False,
+            "error": {"code": "SUPABASE_UNAVAILABLE", "message": "데이터베이스 연결이 불가능해요"}
+        })
+    
     if not user_id:
         user_id = "demo-user"
     
-    conn = get_db_connection()
     try:
-        with conn.cursor() as cur:
-            cur.execute("""
-                SELECT * FROM lectures 
-                WHERE course_id = %s AND lecture_number = %s
-            """, (course_id, lecture_number))
-            row = cur.fetchone()
-            
-            if not row:
-                raise HTTPException(
-                    status_code=404,
-                    detail={
-                        "ok": False,
-                        "error": {
-                            "code": "LECTURE_NOT_FOUND",
-                            "message": "강의를 찾을 수 없어요"
-                        }
+        result = supabase.table("lectures")\
+            .select("*")\
+            .eq("course_id", course_id)\
+            .eq("lecture_number", lecture_number)\
+            .single()\
+            .execute()
+        
+        if not result.data:
+            raise HTTPException(
+                status_code=404,
+                detail={
+                    "ok": False,
+                    "error": {
+                        "code": "LECTURE_NOT_FOUND",
+                        "message": "강의를 찾을 수 없어요"
                     }
-                )
-            
-            lecture_data = {
-                "id": row[0],
-                "course_id": row[1],
-                "lecture_number": row[2],
-                "title": row[3],
-                "duration": row[4],
-                "script": row[5],
-                "panels": row[6] if row[6] else [],
-                "created_at": row[7].isoformat() if row[7] else None
-            }
-            
-            return {"ok": True, "data": lecture_data}
+                }
+            )
+        
+        return {"ok": True, "data": result.data}
     
     except HTTPException:
         raise
@@ -299,15 +268,14 @@ async def get_lecture(
                 }
             }
         )
-    finally:
-        conn.close()
 
 
 @router.post("/{course_id}/progress", response_model=EnvelopeResponse)
 async def update_progress(
     course_id: str,
     lecture_number: int = Query(..., description="완료한 강의 번호"),
-    user_id: Optional[str] = None
+    user_id: Optional[str] = None,
+    supabase: Client = Depends(get_supabase)
 ):
     """
     강의 진행 상황 업데이트
@@ -316,67 +284,70 @@ async def update_progress(
     - 완료한 강의 수 증가
     - 전체 강좌 완료 시 completed_at 설정
     """
+    if not supabase:
+        raise HTTPException(status_code=503, detail={
+            "ok": False,
+            "error": {"code": "SUPABASE_UNAVAILABLE", "message": "데이터베이스 연결이 불가능해요"}
+        })
+    
     if not user_id:
         user_id = "demo-user"
     
-    conn = get_db_connection()
     try:
-        with conn.cursor() as cur:
-            # 강좌 총 강의 수 확인
-            cur.execute("""
-                SELECT total_lectures FROM courses WHERE id = %s
-            """, (course_id,))
-            course_row = cur.fetchone()
-            
-            if not course_row:
-                raise HTTPException(status_code=404, detail={
-                    "ok": False,
-                    "error": {"code": "COURSE_NOT_FOUND", "message": "강좌를 찾을 수 없어요"}
-                })
-            
-            total_lectures = course_row[0]
-            is_completed = (lecture_number >= total_lectures)
-            
-            # 진행 상황 upsert
-            cur.execute("""
-                INSERT INTO user_course_progress 
-                    (user_id, course_id, last_watched_lecture, completed_lectures, completed_at, last_accessed_at)
-                VALUES (%s, %s, %s, %s, %s, NOW())
-                ON CONFLICT (user_id, course_id) DO UPDATE SET
-                    last_watched_lecture = GREATEST(EXCLUDED.last_watched_lecture, user_course_progress.last_watched_lecture),
-                    completed_lectures = GREATEST(EXCLUDED.completed_lectures, user_course_progress.completed_lectures),
-                    completed_at = CASE 
-                        WHEN EXCLUDED.completed_at IS NOT NULL THEN EXCLUDED.completed_at
-                        ELSE user_course_progress.completed_at
-                    END,
-                    last_accessed_at = NOW()
-                RETURNING *
-            """, (
-                user_id,
-                course_id,
-                lecture_number,
-                lecture_number,
-                datetime.now() if is_completed else None
-            ))
-            
-            row = cur.fetchone()
-            conn.commit()
-            
-            progress_data = {
-                "user_id": row[1],
-                "course_id": row[2],
-                "last_watched_lecture": row[3],
-                "completed_lectures": row[4],
-                "completed_at": row[5].isoformat() if row[5] else None,
+        # 강좌 총 강의 수 확인
+        course_result = supabase.table("courses").select("total_lectures").eq("id", course_id).single().execute()
+        
+        if not course_result.data:
+            raise HTTPException(status_code=404, detail={
+                "ok": False,
+                "error": {"code": "COURSE_NOT_FOUND", "message": "강좌를 찾을 수 없어요"}
+            })
+        
+        total_lectures = course_result.data["total_lectures"]
+        is_completed = (lecture_number >= total_lectures)
+        
+        # 기존 진행 상황 확인
+        existing = supabase.table("user_course_progress")\
+            .select("*")\
+            .eq("user_id", user_id)\
+            .eq("course_id", course_id)\
+            .execute()
+        
+        progress_data = {
+            "user_id": user_id,
+            "course_id": course_id,
+            "last_watched_lecture": lecture_number,
+            "completed_lectures": lecture_number,
+            "last_accessed_at": datetime.now().isoformat()
+        }
+        
+        if is_completed:
+            progress_data["completed_at"] = datetime.now().isoformat()
+        
+        if existing.data:
+            # Update
+            result = supabase.table("user_course_progress")\
+                .update(progress_data)\
+                .eq("user_id", user_id)\
+                .eq("course_id", course_id)\
+                .execute()
+        else:
+            # Insert
+            result = supabase.table("user_course_progress")\
+                .insert(progress_data)\
+                .execute()
+        
+        return {
+            "ok": True,
+            "data": {
+                **result.data[0],
                 "is_course_completed": is_completed
             }
-            
-            return {"ok": True, "data": progress_data}
+        }
     
     except HTTPException:
         raise
     except Exception as e:
-        conn.rollback()
         raise HTTPException(
             status_code=500,
             detail={
@@ -387,81 +358,85 @@ async def update_progress(
                 }
             }
         )
-    finally:
-        conn.close()
 
 
-@router.get("/recommend/today", response_model=EnvelopeResponse)
-async def get_today_recommendation(user_id: Optional[str] = None):
+@router.get("/recommendation/today", response_model=EnvelopeResponse)
+async def get_today_recommendation(
+    user_id: Optional[str] = None,
+    supabase: Client = Depends(get_supabase)
+):
     """
     오늘의 학습 추천
     
     - 진행 중인 강좌가 있으면 → "이어서 보기"
     - 없으면 → 새로운 강좌 추천
     """
+    if not supabase:
+        raise HTTPException(status_code=503, detail={
+            "ok": False,
+            "error": {"code": "SUPABASE_UNAVAILABLE", "message": "데이터베이스 연결이 불가능해요"}
+        })
+    
     if not user_id:
         user_id = "demo-user"
     
-    conn = get_db_connection()
     try:
-        with conn.cursor() as cur:
-            # 가장 최근에 본 강좌 찾기
-            cur.execute("""
-                SELECT 
-                    p.course_id,
-                    p.last_watched_lecture,
-                    p.completed_lectures,
-                    c.title,
-                    c.thumbnail,
-                    c.total_lectures
-                FROM user_course_progress p
-                JOIN courses c ON p.course_id = c.id
-                WHERE p.user_id = %s 
-                    AND p.completed_at IS NULL
-                ORDER BY p.last_accessed_at DESC
-                LIMIT 1
-            """, (user_id,))
-            row = cur.fetchone()
+        # 가장 최근에 본 강좌 찾기 (Supabase는 JOIN을 지원하지 않으므로 분리 조회)
+        progress_result = supabase.table("user_course_progress")\
+            .select("*")\
+            .eq("user_id", user_id)\
+            .is_("completed_at", "null")\
+            .order("last_accessed_at", desc=True)\
+            .limit(1)\
+            .execute()
+        
+        if progress_result.data:
+            # 진행 중인 강좌 있음
+            p = progress_result.data[0]
+            course = supabase.table("courses").select("*").eq("id", p["course_id"]).single().execute().data
             
-            if row:
-                # 진행 중인 강좌 있음
+            recommendation = {
+                "type": "continue",
+                "course_id": p["course_id"],
+                "next_lecture": p["last_watched_lecture"] + 1,
+                "title": course["title"],
+                "thumbnail": course["thumbnail"],
+                "progress": f"{p['completed_lectures']}/{course['total_lectures']}강",
+                "message": "이어서 보기"
+            }
+        else:
+            # 완료한 강좌 ID 목록
+            completed = supabase.table("user_course_progress")\
+                .select("course_id")\
+                .eq("user_id", user_id)\
+                .not_.is_("completed_at", "null")\
+                .execute()
+            
+            completed_ids = [c["course_id"] for c in completed.data]
+            
+            # 새로운 강좌 추천 (최신순)
+            query = supabase.table("courses").select("*").order("created_at", desc=True).limit(1)
+            
+            if completed_ids:
+                query = query.not_.in_("id", completed_ids)
+            
+            course_result = query.execute()
+            
+            if course_result.data:
+                c = course_result.data[0]
                 recommendation = {
-                    "type": "continue",
-                    "course_id": row[0],
-                    "next_lecture": row[1] + 1,
-                    "title": row[3],
-                    "thumbnail": row[4],
-                    "progress": f"{row[2]}/{row[5]}강",
-                    "message": "이어서 보기"
+                    "type": "new",
+                    "course_id": c["id"],
+                    "next_lecture": 1,
+                    "title": c["title"],
+                    "thumbnail": c["thumbnail"],
+                    "progress": f"0/{c['total_lectures']}강",
+                    "message": "새로운 강좌 시작하기"
                 }
             else:
-                # 새로운 강좌 추천 (최신순)
-                cur.execute("""
-                    SELECT id, title, thumbnail, total_lectures
-                    FROM courses
-                    WHERE id NOT IN (
-                        SELECT course_id FROM user_course_progress 
-                        WHERE user_id = %s AND completed_at IS NOT NULL
-                    )
-                    ORDER BY created_at DESC
-                    LIMIT 1
-                """, (user_id,))
-                row = cur.fetchone()
-                
-                if row:
-                    recommendation = {
-                        "type": "new",
-                        "course_id": row[0],
-                        "next_lecture": 1,
-                        "title": row[1],
-                        "thumbnail": row[2],
-                        "progress": f"0/{row[3]}강",
-                        "message": "새로운 강좌 시작하기"
-                    }
-                else:
-                    recommendation = None
-            
-            return {"ok": True, "data": recommendation}
+                recommendation = None
+        
+        return {"ok": True, "data": recommendation}
     
     except Exception as e:
         raise HTTPException(
@@ -474,5 +449,3 @@ async def get_today_recommendation(user_id: Optional[str] = None):
                 }
             }
         )
-    finally:
-        conn.close()
