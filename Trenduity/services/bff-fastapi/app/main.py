@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from app.core.config import settings
 from app.core.deps import init_redis_pool
 from app.middleware.performance import PerformanceMiddleware
-from app.routers import cards, insights, voice, scam, community, family, alerts, dashboard, med, gamification, usage, chat, expenses, todos, subscriptions, admin
+from app.routers import cards, insights, voice, scam, community, family, alerts, dashboard, med, gamification, usage, chat, expenses, todos, subscriptions, admin, courses
 import logging
 
 logger = logging.getLogger(__name__)
@@ -135,6 +135,10 @@ app = FastAPI(
             "name": "todos",
             "description": "📝 **할일 메모장** - 할일 관리, 알림 설정"
         },
+        {
+            "name": "courses",
+            "description": "🎓 **강의 시스템** - EBSI 스타일 강의 목록, 강의 상세, 강의 재생, 진도 관리"
+        },
     ],
 )
 
@@ -181,6 +185,9 @@ app.include_router(subscriptions.router, prefix=f"/{settings.API_VERSION}/subscr
 
 # Admin 라우터 추가 (관리자 전용)
 app.include_router(admin.router, prefix=f"/{settings.API_VERSION}/admin", tags=["admin"])
+
+# Courses 라우터 추가 (강의 시스템)
+app.include_router(courses.router, prefix=f"/{settings.API_VERSION}/courses", tags=["courses"])
 
 
 @app.get("/health")
