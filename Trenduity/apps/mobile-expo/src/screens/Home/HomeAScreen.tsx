@@ -1,4 +1,4 @@
-﻿import React, { useState, useCallback } from 'react';
+﻿import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   RefreshControl,
   FlatList,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import { AppHeader } from '../../components/AppHeader';
 import { COLORS } from '../../tokens/colors';
@@ -17,55 +18,58 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTodayCard } from '../../hooks/useTodayCard';
 import { useGamification } from '../../hooks/useGamification';
+import { useCourses } from '../../hooks/useCourses';
 
-// 오늘의 학습 목업 데이터
+// AI 활용 추천 배움 카드
 const MOCK_LEARNING_CARDS = [
   {
     id: '1',
-    title: 'ChatGPT란 무엇인가요?',
-    tldr: 'AI 챗봇의 기본 개념과 일상에서 활용하는 방법을 알아봅니다.',
-    category: 'ai_tools',
-    duration: 3,
-    emoji: '🤖',
+    title: 'AI로 손주에게 보낼 생일 메시지 만들기',
+    tldr: 'ChatGPT를 활용해 따뜻하고 감동적인 생일 축하 메시지를 작성하는 방법을 배워요.',
+    category: 'ai_creative',
+    duration: 4,
+    emoji: '🎂',
     completed: false,
   },
   {
     id: '2',
-    title: '스마트폰 사기 문자 구별법',
-    tldr: '보이스피싱과 스미싱을 구별하는 5가지 핵심 포인트를 배웁니다.',
-    category: 'digital_safety',
-    duration: 2,
-    emoji: '🛡️',
-    completed: true,
+    title: 'AI와 함께 여행 계획 세우기',
+    tldr: 'AI의 도움을 받아 가족 여행지 추천부터 일정 계획까지 쉽게 만들어요.',
+    category: 'ai_lifestyle',
+    duration: 5,
+    emoji: '✈️',
+    completed: false,
   },
   {
     id: '3',
-    title: '카카오톡 영상통화 하기',
-    tldr: '가족, 친구와 무료로 영상통화 하는 방법을 단계별로 알려드려요.',
-    category: 'digital_tools',
-    duration: 4,
-    emoji: '📱',
+    title: 'AI로 건강 증상 미리 확인하기',
+    tldr: '병원 가기 전 AI에게 증상을 물어보고 어느 과에 가야 할지 알아봐요.',
+    category: 'ai_health',
+    duration: 3,
+    emoji: '🏥',
     completed: false,
   },
   {
     id: '4',
-    title: '유튜브에서 건강 정보 찾기',
-    tldr: '유튜브 검색 기능을 활용해 건강 정보를 찾는 방법을 배웁니다.',
-    category: 'health',
-    duration: 3,
-    emoji: '🎬',
+    title: '우울할 때 AI와 대화하기',
+    tldr: '마음이 힘들 때 AI 도우미와 대화하며 위로받는 방법을 배워요.',
+    category: 'ai_wellness',
+    duration: 4,
+    emoji: '😊',
     completed: false,
   },
   {
     id: '5',
-    title: '안전한 비밀번호 만들기',
-    tldr: '해킹당하지 않는 강력한 비밀번호를 만드는 방법을 알려드려요.',
-    category: 'digital_safety',
-    duration: 2,
-    emoji: '🔐',
-    completed: true,
+    title: 'AI로 재미있는 소설 만들기',
+    tldr: 'AI와 함께 나만의 이야기를 창작하고 가족에게 들려주는 방법을 알아봐요.',
+    category: 'ai_creative',
+    duration: 5,
+    emoji: '📖',
+    completed: false,
   },
 ];
+
+const ACTIVE_COURSE_KEY = '@active_course';
 
 export const HomeAScreen = () => {
   const navigation = useNavigation<any>();
@@ -73,12 +77,37 @@ export const HomeAScreen = () => {
   const { activeTheme, colors } = useTheme();
   const { user } = useAuth();
   const [refreshing, setRefreshing] = useState(false);
+  const [activeCourse, setActiveCourse] = useState<any>(null);
+  const [loadingCourse, setLoadingCourse] = useState(true);
 
   // 오늘의 카드 데이터
   const { data: todayCard, isLoading: cardLoading, error: cardError, refetch: refetchCard } = useTodayCard();
   
   // 게임화 통계
   const { data: stats, isLoading: statsLoading, refetch: refetchStats } = useGamification();
+
+  // 강좌 목록
+  const { courses, isLoading: coursesLoading, error: coursesError } = useCourses();
+
+  // 활성 강좌 로드
+  const loadActiveCourse = useCallback(async () => {
+    try {
+      const stored = await AsyncStorage.getItem(ACTIVE_COURSE_KEY);
+      if (stored) {
+        setActiveCourse(JSON.parse(stored));
+      } else {
+        setActiveCourse(null);
+      }
+    } catch (error) {
+      console.error('Failed to load active course:', error);
+    } finally {
+      setLoadingCourse(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadActiveCourse();
+  }, [loadActiveCourse]);
 
   // 테마 색상
   const bgColor = activeTheme === 'dark' ? colors.dark.background.primary : '#FFFFFF';
@@ -88,13 +117,33 @@ export const HomeAScreen = () => {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await Promise.all([refetchCard(), refetchStats()]);
+    await Promise.all([refetchCard(), refetchStats(), loadActiveCourse()]);
     setRefreshing(false);
-  }, [refetchCard, refetchStats]);
+  }, [refetchCard, refetchStats, loadActiveCourse]);
 
-  const handleStartLearning = () => {
-    // TODO: 학습 카드 상세 화면으로 이동
-    console.log('학습 시작:', todayCard?.id);
+  const handleStartLearning = async () => {
+    // 활성 강좌가 있으면 해당 강좌로, 없으면 랜덤 선택
+    if (activeCourse) {
+      navigation.navigate('CourseDetail', { courseId: activeCourse.id });
+    } else if (courses && courses.length > 0) {
+      // 랜덤 강좌 선택
+      const randomCourse = courses[Math.floor(Math.random() * courses.length)];
+      const newActiveCourse = {
+        id: randomCourse.id,
+        title: randomCourse.title,
+        thumbnail: randomCourse.thumbnail,
+        description: randomCourse.description,
+        total_lectures: randomCourse.total_lectures,
+        completed_lectures: 0,
+        last_watched_lecture: 0,
+        started_at: new Date().toISOString(),
+      };
+      await AsyncStorage.setItem(ACTIVE_COURSE_KEY, JSON.stringify(newActiveCourse));
+      setActiveCourse(newActiveCourse);
+      navigation.navigate('CourseDetail', { courseId: randomCourse.id });
+    } else {
+      console.log('학습 시작:', todayCard?.id);
+    }
   };
 
   const handleExpenseTracker = () => {
@@ -211,18 +260,87 @@ export const HomeAScreen = () => {
           <TouchableOpacity
             style={[styles.actionButton, styles.primaryButton, { backgroundColor: COLORS.primary.main, height: buttonHeight }]}
             onPress={handleStartLearning}
-            accessibilityLabel="학습 시작하기"
+            accessibilityLabel={activeCourse ? "이어서 학습하기" : "학습 시작하기"}
             accessibilityRole="button"
           >
             <Text style={[styles.buttonText, { fontSize: fontSizes.body }]}>
-              📝 학습 시작
+              {activeCourse ? '📖 이어서 학습' : '📝 학습 시작'}
             </Text>
           </TouchableOpacity>
         </View>
 
-        {/* 추천 학습 카드 목록 */}
+        {/* 강좌 섹션 */}
+        <View style={styles.coursesSection}>
+          <View style={styles.sectionHeader}>
+            <Text style={[styles.sectionTitle, { fontSize: fontSizes.heading2, color: textPrimary }]}>
+              🎓 강좌 더보기
+            </Text>
+            <TouchableOpacity onPress={() => navigation.navigate('Courses')}>
+              <Text style={[styles.seeAllText, { fontSize: fontSizes.body, color: COLORS.primary.main }]}>
+                전체보기 →
+              </Text>
+            </TouchableOpacity>
+          </View>
+          
+          {coursesLoading ? (
+            <ActivityIndicator size="large" color={COLORS.primary.main} style={{ marginVertical: 20 }} />
+          ) : coursesError ? (
+            <Text style={[styles.emptyText, { fontSize: fontSizes.body, color: textSecondary, textAlign: 'center' }]}>
+              강좌를 불러올 수 없어요
+            </Text>
+          ) : courses && courses.length > 0 ? (
+            <ScrollView 
+              horizontal 
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ paddingRight: spacing.md }}
+            >
+              {courses.map((course) => (
+                <TouchableOpacity
+                  key={course.id}
+                  style={[
+                    styles.courseCard,
+                    {
+                      backgroundColor: cardBg,
+                      width: 180,
+                      marginRight: spacing.md,
+                      padding: spacing.md,
+                      borderRadius: 12,
+                      borderWidth: 1,
+                      borderColor: '#E5E7EB',
+                    },
+                  ]}
+                  onPress={() => navigation.navigate('CourseDetail', { courseId: course.id })}
+                  accessibilityLabel={`${course.title} 강좌 보기`}
+                >
+                  <Text style={{ fontSize: 40, marginBottom: spacing.sm }}>{course.thumbnail}</Text>
+                  <Text 
+                    style={[styles.courseTitle, { fontSize: fontSizes.body, color: textPrimary, fontWeight: '600' }]}
+                    numberOfLines={2}
+                  >
+                    {course.title}
+                  </Text>
+                  <Text 
+                    style={[styles.courseDesc, { fontSize: fontSizes.small, color: textSecondary, marginTop: spacing.xs }]}
+                    numberOfLines={2}
+                  >
+                    {course.description}
+                  </Text>
+                  <Text style={[styles.courseLectures, { fontSize: fontSizes.caption, color: COLORS.primary.main, marginTop: spacing.sm }]}>
+                    📚 총 {course.total_lectures}강
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          ) : (
+            <Text style={[styles.emptyText, { fontSize: fontSizes.body, color: textSecondary, textAlign: 'center' }]}>
+              준비된 강좌가 없어요
+            </Text>
+          )}
+        </View>
+
+        {/* 추천 배움 카드 목록 */}
         <Text style={[styles.sectionTitle, { fontSize: fontSizes.heading2, color: textPrimary, marginTop: spacing.lg }]}>
-          📖 추천 학습
+          💡 추천 배움
         </Text>
         <ScrollView 
           horizontal 
@@ -325,6 +443,14 @@ export const HomeAScreen = () => {
             <Text style={styles.quickMenuIcon}>💊</Text>
             <Text style={[styles.quickMenuText, { fontSize: fontSizes.body, color: textPrimary }]}>복약 체크</Text>
           </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.quickMenuItem, { backgroundColor: cardBg }]}
+            onPress={() => navigation.navigate('AIConsult')}
+            accessibilityLabel="AI에게 맞춤 상담 받기"
+          >
+            <Text style={styles.quickMenuIcon}>🤖</Text>
+            <Text style={[styles.quickMenuText, { fontSize: fontSizes.body, color: textPrimary }]}>AI 맞춤 상담</Text>
+          </TouchableOpacity>
         </View>
 
         {/* 최근 활동 */}
@@ -375,6 +501,35 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginBottom: 12,
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  seeAllText: {
+    fontWeight: '600',
+  },
+  coursesSection: {
+    marginTop: 20,
+    marginBottom: 20,
+  },
+  courseCard: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  courseTitle: {
+    marginBottom: 8,
+  },
+  courseDesc: {
+    lineHeight: 18,
+  },
+  courseLectures: {
+    fontWeight: '600',
+  },
   statsContainer: {
     flexDirection: 'row',
     padding: 16,
@@ -424,6 +579,9 @@ const styles = StyleSheet.create({
   cardDescription: {
     lineHeight: 24,
     marginBottom: 16,
+  },
+  cardProgress: {
+    fontWeight: '600',
   },
   actionButton: {
     justifyContent: 'center',

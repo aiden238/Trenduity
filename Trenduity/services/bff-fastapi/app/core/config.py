@@ -23,6 +23,10 @@ class Settings(BaseSettings):
     SUPABASE_URL: str
     SUPABASE_SERVICE_ROLE_KEY: str
     
+    # ==================== Database 설정 ====================
+    # PostgreSQL 직접 연결 (courses API용)
+    DATABASE_URL: Optional[str] = None
+    
     # ==================== Redis 설정 ====================
     REDIS_URL: str = "redis://localhost:6379/0"
     REDIS_PASSWORD: Optional[str] = None

@@ -18,7 +18,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useA11y } from '@/contexts/A11yContext';
 import { useLecture, useUpdateProgress } from '@/hooks/useCourses';
 
-export default function LecturePlayerScreen() {
+export const LecturePlayerScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
   const { courseId, lectureNumber } = route.params as { courseId: string; lectureNumber: number };

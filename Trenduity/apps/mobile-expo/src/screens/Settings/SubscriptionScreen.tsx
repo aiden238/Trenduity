@@ -22,7 +22,7 @@ import {
 
 // 모델 이름 매핑
 const MODEL_NAMES: Record<string, string> = {
-  quick: '⚡ 빠른 일반 비서',
+  quick: '⚡ 빠른 비서',
   allround: '🌟 만능 비서',
   writer: '✍️ 글쓰기 비서',
   expert: '🎓 척척박사 비서',

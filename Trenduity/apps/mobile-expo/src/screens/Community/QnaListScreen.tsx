@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, ScrollView, TouchableOpacity } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { View, Text, StyleSheet, FlatList, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useA11y } from '../../contexts/A11yContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { COLORS, SPACING, SHADOWS, RADIUS } from '../../tokens/colors';
 
 const TOPICS = [
@@ -16,6 +17,7 @@ const TOPICS = [
 
 // 좋아요 저장 키
 const LIKES_STORAGE_KEY = '@qna_likes';
+const POSTS_STORAGE_KEY = '@qna_posts';
 
 // 더미 데이터
 const DUMMY_POSTS = [
@@ -70,8 +72,10 @@ export const QnaListScreen = () => {
   const [selectedTopic, setSelectedTopic] = useState<string | undefined>();
   const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
   const [localVoteCounts, setLocalVoteCounts] = useState<Record<string, number>>({});
+  const [userPosts, setUserPosts] = useState<any[]>([]);
   const { spacing, fontSizes } = useA11y();
   const { activeTheme, colors } = useTheme();
+  const { user } = useAuth();
   const navigation = useNavigation<any>();
   
   // 다크 모드 색상
@@ -80,10 +84,18 @@ export const QnaListScreen = () => {
   const textPrimary = activeTheme === 'dark' ? colors.dark.text.primary : '#1F2937';
   const textSecondary = activeTheme === 'dark' ? colors.dark.text.secondary : '#6B7280';
 
-  // 좋아요 상태 로드
+  // 좋아요 상태 및 사용자 게시물 로드
   useEffect(() => {
     loadLikes();
+    loadUserPosts();
   }, []);
+
+  // 화면 포커스될 때마다 게시물 새로고침
+  useFocusEffect(
+    React.useCallback(() => {
+      loadUserPosts();
+    }, [])
+  );
 
   const loadLikes = async () => {
     try {
@@ -96,6 +108,43 @@ export const QnaListScreen = () => {
     } catch (e) {
       console.log('좋아요 로드 실패:', e);
     }
+  };
+
+  const loadUserPosts = async () => {
+    try {
+      const stored = await AsyncStorage.getItem(POSTS_STORAGE_KEY);
+      if (stored) {
+        const posts = JSON.parse(stored);
+        setUserPosts(posts);
+      }
+    } catch (e) {
+      console.log('게시물 로드 실패:', e);
+    }
+  };
+
+  const handleDeletePost = async (postId: string) => {
+    Alert.alert(
+      '글 삭제',
+      '정말로 이 글을 삭제하시겠어요?',
+      [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '삭제',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const filtered = userPosts.filter(p => p.id !== postId);
+              await AsyncStorage.setItem(POSTS_STORAGE_KEY, JSON.stringify(filtered));
+              setUserPosts(filtered);
+              Alert.alert('완료', '글이 삭제되었습니다.');
+            } catch (e) {
+              console.error('삭제 실패:', e);
+              Alert.alert('오류', '글 삭제에 실패했습니다.');
+            }
+          }
+        }
+      ]
+    );
   };
 
   const saveLikes = async (newLikedPosts: Set<string>, newVoteCounts: Record<string, number>) => {
@@ -134,10 +183,13 @@ export const QnaListScreen = () => {
     return post.vote_count + (localVoteCounts[post.id] || 0);
   };
 
+  // 사용자 게시물 + 더미 게시물 합치기
+  const allPosts = [...userPosts, ...DUMMY_POSTS];
+
   // 필터된 게시물
   const filteredPosts = selectedTopic 
-    ? DUMMY_POSTS.filter(post => post.topic === selectedTopic)
-    : DUMMY_POSTS;
+    ? allPosts.filter(post => post.topic === selectedTopic)
+    : allPosts;
 
   return (
     <View style={[styles.container, { backgroundColor: bgColor }]}>
@@ -197,66 +249,85 @@ export const QnaListScreen = () => {
         data={filteredPosts}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ padding: spacing.md }}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            onPress={() => navigation.navigate('QnaDetail', { postId: item.id })}
-            style={[
-              styles.postCard,
-              { 
-                backgroundColor: cardBg, 
-                marginBottom: spacing.md,
-                padding: spacing.md,
-                borderRadius: RADIUS.lg,
-              }
-            ]}
-            accessibilityRole="button"
-            accessibilityLabel={`${item.title} - ${item.author_name}님의 질문`}
-          >
-            <Text style={[styles.postTitle, { fontSize: fontSizes.body, color: textPrimary }]}>
-              {item.title}
-            </Text>
-            <Text 
+        renderItem={({ item }) => {
+          const isMyPost = item.author_id === user?.id;
+          return (
+            <TouchableOpacity
+              onPress={() => navigation.navigate('QnaDetail', { postId: item.id })}
               style={[
-                styles.postSummary, 
-                { fontSize: fontSizes.small, color: textSecondary, marginTop: spacing.xs }
+                styles.postCard,
+                { 
+                  backgroundColor: cardBg, 
+                  marginBottom: spacing.md,
+                  padding: spacing.md,
+                  borderRadius: RADIUS.lg,
+                }
               ]}
-              numberOfLines={2}
+              accessibilityRole="button"
+              accessibilityLabel={`${item.title} - ${item.author_name}님의 질문`}
             >
-              {item.ai_summary}
-            </Text>
-            <View style={[styles.postMeta, { marginTop: spacing.sm }]}>
-              <View style={styles.authorRow}>
-                <Text style={[styles.postAuthor, { fontSize: fontSizes.small, color: textSecondary }]}>
-                  {item.author_name}
+              <View style={styles.postHeader}>
+                <Text style={[styles.postTitle, { fontSize: fontSizes.body, color: textPrimary, flex: 1 }]}>
+                  {item.title}
                 </Text>
-                {item.created_at && (
-                  <Text style={[styles.postDate, { fontSize: fontSizes.small, color: textSecondary }]}>
-                    · {new Date(item.created_at).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })}
-                  </Text>
+                {isMyPost && (
+                  <TouchableOpacity
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      handleDeletePost(item.id);
+                    }}
+                    style={[styles.deleteButton, { padding: spacing.xs }]}
+                    accessibilityRole="button"
+                    accessibilityLabel="내 글 삭제하기"
+                  >
+                    <Text style={{ fontSize: fontSizes.small, color: '#EF4444' }}>🗑️</Text>
+                  </TouchableOpacity>
                 )}
               </View>
-              <TouchableOpacity
-                onPress={(e) => handleLikeToggle(item.id, e)}
+              <Text 
                 style={[
-                  styles.likeButton,
-                  likedPosts.has(item.id) && styles.likeButtonActive,
-                  { paddingVertical: spacing.xs, paddingHorizontal: spacing.sm }
+                  styles.postSummary, 
+                  { fontSize: fontSizes.small, color: textSecondary, marginTop: spacing.xs }
                 ]}
-                accessibilityRole="button"
-                accessibilityLabel={likedPosts.has(item.id) ? '좋아요 취소' : '좋아요'}
-                accessibilityState={{ selected: likedPosts.has(item.id) }}
+                numberOfLines={2}
               >
-                <Text style={[
-                  styles.postVotes, 
-                  { fontSize: fontSizes.small },
-                  likedPosts.has(item.id) ? styles.likeTextActive : { color: textSecondary }
-                ]}>
-                  {likedPosts.has(item.id) ? '❤️' : '🤍'} {getVoteCount(item)}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </TouchableOpacity>
-        )}
+                {item.ai_summary}
+              </Text>
+              <View style={[styles.postMeta, { marginTop: spacing.sm }]}>
+                <View style={styles.authorRow}>
+                  <Text style={[styles.postAuthor, { fontSize: fontSizes.small, color: textSecondary }]}>
+                    {item.author_name}
+                    {isMyPost && <Text style={{ color: COLORS.primary.main }}> (나)</Text>}
+                  </Text>
+                  {item.created_at && (
+                    <Text style={[styles.postDate, { fontSize: fontSizes.small, color: textSecondary }]}>
+                      · {new Date(item.created_at).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })}
+                    </Text>
+                  )}
+                </View>
+                <TouchableOpacity
+                  onPress={(e) => handleLikeToggle(item.id, e)}
+                  style={[
+                    styles.likeButton,
+                    likedPosts.has(item.id) && styles.likeButtonActive,
+                    { paddingVertical: spacing.xs, paddingHorizontal: spacing.sm }
+                  ]}
+                  accessibilityRole="button"
+                  accessibilityLabel={likedPosts.has(item.id) ? '좋아요 취소' : '좋아요'}
+                  accessibilityState={{ selected: likedPosts.has(item.id) }}
+                >
+                  <Text style={[
+                    styles.postVotes, 
+                    { fontSize: fontSizes.small },
+                    likedPosts.has(item.id) ? styles.likeTextActive : { color: textSecondary }
+                  ]}>
+                    {likedPosts.has(item.id) ? '❤️' : '🤍'} {getVoteCount(item)}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </TouchableOpacity>
+          );
+        }}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Text style={[styles.emptyText, { fontSize: fontSizes.body, color: textSecondary }]}>
@@ -314,8 +385,17 @@ const styles = StyleSheet.create({
   postCard: {
     ...SHADOWS.md,
   },
+  postHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+  },
   postTitle: {
     fontWeight: '600',
+  },
+  deleteButton: {
+    borderRadius: RADIUS.sm,
+    backgroundColor: '#FEE2E2',
   },
   postSummary: {
     lineHeight: 20,

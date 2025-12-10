@@ -1,37 +1,108 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ScrollView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useA11y } from '../../contexts/A11yContext';
 import { COLORS, SPACING, SHADOWS, RADIUS } from '../../tokens/colors';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAuth } from '../../contexts/AuthContext';
+
+const TOPICS = [
+  { key: 'ai_tools', label: 'AI 활용', icon: '🤖' },
+  { key: 'digital_safety', label: '디지털 안전', icon: '🛡️' },
+  { key: 'health', label: '건강', icon: '💊' },
+  { key: 'general', label: '일반', icon: '💬' },
+];
+
+const POSTS_STORAGE_KEY = '@qna_posts';
 
 /**
  * Q&A 작성 화면
  * 
- * TODO(IMPLEMENT): 실제 글 작성 저장
- * TODO(IMPLEMENT): AI 요약 생성
+ * 기능:
+ * - 주제 선택 (AI활용, 디지털 안전, 건강, 일반)
+ * - 제목/내용 작성
+ * - AsyncStorage에 저장
  */
 export const QnaCreateScreen = () => {
   const { spacing, fontSizes, buttonHeight } = useA11y();
   const navigation = useNavigation();
+  const { user } = useAuth();
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
+  const [selectedTopic, setSelectedTopic] = useState<string>(TOPICS[0].key);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!title.trim() || !body.trim()) {
       Alert.alert('알림', '제목과 내용을 모두 입력해주세요.');
       return;
     }
-    console.log('[TODO] Q&A 작성 저장', { title, body });
-    Alert.alert('알림', '질문이 등록되었습니다!', [
-      { text: '확인', onPress: () => navigation.goBack() }
-    ]);
+
+    try {
+      const stored = await AsyncStorage.getItem(POSTS_STORAGE_KEY);
+      const posts = stored ? JSON.parse(stored) : [];
+
+      const newPost = {
+        id: Date.now().toString(),
+        title: title.trim(),
+        ai_summary: body.trim().substring(0, 100) + (body.length > 100 ? '...' : ''),
+        body: body.trim(),
+        author_name: user?.name || '익명',
+        author_id: user?.id || 'anonymous',
+        vote_count: 0,
+        topic: selectedTopic,
+        created_at: new Date().toISOString(),
+      };
+
+      posts.unshift(newPost);
+      await AsyncStorage.setItem(POSTS_STORAGE_KEY, JSON.stringify(posts));
+
+      Alert.alert('완료! 🎉', '질문이 등록되었습니다!', [
+        { text: '확인', onPress: () => navigation.goBack() }
+      ]);
+    } catch (error) {
+      console.error('글 저장 실패:', error);
+      Alert.alert('오류', '글 저장에 실패했습니다.');
+    }
   };
 
   return (
     <View style={styles.container}>
-      <Text style={[styles.heading, { fontSize: fontSizes.heading1, marginBottom: spacing.lg }]}>
-        ✏️ 질문하기
+      <ScrollView contentContainerStyle={{ padding: SPACING.lg }}>
+        <Text style={[styles.heading, { fontSize: fontSizes.heading1, marginBottom: spacing.lg }]}>
+          ✏️ 질문하기
+        </Text>
+
+      {/* 주제 선택 */}
+      <Text style={[styles.label, { fontSize: fontSizes.body, marginBottom: spacing.xs }]}>
+        주제
       </Text>
+      <View style={[styles.topicContainer, { marginBottom: spacing.md }]}>
+        {TOPICS.map((topic) => {
+          const isSelected = selectedTopic === topic.key;
+          return (
+            <TouchableOpacity
+              key={topic.key}
+              onPress={() => setSelectedTopic(topic.key)}
+              style={[
+                styles.topicButton,
+                isSelected && styles.topicButtonActive,
+                { padding: spacing.sm, marginRight: spacing.sm, marginBottom: spacing.sm }
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel={`${topic.label} 주제 선택`}
+              accessibilityState={{ selected: isSelected }}
+            >
+              <Text style={[
+                styles.topicText,
+                { fontSize: fontSizes.body },
+                isSelected && styles.topicTextActive
+              ]}>
+                {topic.icon} {topic.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
 
       <Text style={[styles.label, { fontSize: fontSizes.body, marginBottom: spacing.xs }]}>
         제목
@@ -82,6 +153,7 @@ export const QnaCreateScreen = () => {
           질문 등록
         </Text>
       </TouchableOpacity>
+      </ScrollView>
     </View>
   );
 };
@@ -117,6 +189,28 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  topicContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  topicButton: {
+    borderRadius: RADIUS.lg,
+    backgroundColor: '#F3F4F6',
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  topicButtonActive: {
+    backgroundColor: '#EEF2FF',
+    borderColor: COLORS.primary.main,
+  },
+  topicText: {
+    color: '#6B7280',
+    fontWeight: '500',
+  },
+  topicTextActive: {
+    color: COLORS.primary.main,
     fontWeight: '600',
   },
 });

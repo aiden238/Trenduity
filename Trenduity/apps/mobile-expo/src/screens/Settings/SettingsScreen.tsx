@@ -129,6 +129,68 @@ export const SettingsScreen = () => {
           ))}
         </View>
 
+        {/* 설명모드 (구현중) */}
+        <View style={{ marginTop: spacing.xl }}>
+          <Text style={[styles.sectionTitle, { fontSize: fontSizes.heading2, color: textPrimary }]}>
+            💡 설명모드 (구현중)
+          </Text>
+          <Text style={[styles.sectionDescription, { fontSize: fontSizes.body, color: textSecondary }]}>
+            화면에 대한 설명을 더 많이 보여드려요.
+          </Text>
+
+          <View style={{ flexDirection: 'row', marginTop: spacing.sm, gap: spacing.sm }}>
+            <Pressable
+              style={[
+                styles.modeButton,
+                {
+                  flex: 1,
+                  padding: spacing.md,
+                  backgroundColor: cardBg,
+                  borderRadius: 12,
+                  borderWidth: 2,
+                  borderColor: borderColor,
+                  opacity: 0.6,
+                },
+              ]}
+              disabled={true}
+            >
+              <Text style={[styles.modeButtonText, { fontSize: fontSizes.heading2, color: textPrimary, textAlign: 'center' }]}>
+                EASY
+              </Text>
+              <Text style={[styles.modeButtonDesc, { fontSize: fontSizes.small, color: textSecondary, textAlign: 'center', marginTop: spacing.xs }]}>
+                쉬운 모드
+              </Text>
+            </Pressable>
+
+            <Pressable
+              style={[
+                styles.modeButton,
+                {
+                  flex: 1,
+                  padding: spacing.md,
+                  backgroundColor: cardBg,
+                  borderRadius: 12,
+                  borderWidth: 2,
+                  borderColor: borderColor,
+                  opacity: 0.6,
+                },
+              ]}
+              disabled={true}
+            >
+              <Text style={[styles.modeButtonText, { fontSize: fontSizes.heading2, color: textPrimary, textAlign: 'center' }]}>
+                PRO
+              </Text>
+              <Text style={[styles.modeButtonDesc, { fontSize: fontSizes.small, color: textSecondary, textAlign: 'center', marginTop: spacing.xs }]}>
+                활용 모드
+              </Text>
+            </Pressable>
+          </View>
+
+          <Text style={[styles.comingSoon, { fontSize: fontSizes.small, color: textSecondary, textAlign: 'center', marginTop: spacing.sm }]}>
+            🚧 곧 만나보실 수 있어요!
+          </Text>
+        </View>
+
         {/* 접근성 모드 선택 */}
         <View style={{ marginTop: spacing.xl }}>
           <Text style={[styles.sectionTitle, { fontSize: fontSizes.heading2, color: textPrimary }]}>
@@ -352,5 +414,17 @@ const styles = StyleSheet.create({
   logoutButtonText: {
     color: '#FFFFFF',
     fontWeight: '600',
+  },
+  modeButton: {
+    alignItems: 'center',
+  },
+  modeButtonText: {
+    fontWeight: '700',
+  },
+  modeButtonDesc: {
+    fontWeight: '500',
+  },
+  comingSoon: {
+    fontStyle: 'italic',
   },
 });

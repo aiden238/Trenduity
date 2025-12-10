@@ -17,7 +17,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useA11y } from '@/contexts/A11yContext';
 import { useCourses } from '@/hooks/useCourses';
 
-export default function CoursesScreen() {
+export const CoursesScreen = () => {
   const navigation = useNavigation();
   const { colors } = useTheme();
   const { fontSizes, spacing } = useA11y();

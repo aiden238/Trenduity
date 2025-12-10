@@ -8,6 +8,7 @@ import { LoginScreen } from '../screens/Auth/LoginScreen';
 import { SignupScreen } from '../screens/Auth/SignupScreen';
 import { HomeAScreen } from '../screens/Home/HomeAScreen';
 import { AIChatScreen } from '../screens/Chat/AIChatScreen';
+import { AIConsultScreen } from '../screens/Chat/AIConsultScreen';
 import { EmergencySupportScreen } from '../screens/Support/EmergencySupportScreen';
 import { InsightListScreen } from '../screens/Insights/InsightListScreen';
 import { InsightDetailScreen } from '../screens/Insights/InsightDetailScreen';
@@ -27,6 +28,10 @@ import { TodoMemoScreen } from '../screens/Tools/TodoMemoScreen';
 import { SubscriptionScreen } from '../screens/Settings/SubscriptionScreen';
 import { SideIncomeScreen } from '../screens/Finance/SideIncomeScreen';
 import { AdminScreen } from '../screens/Admin/AdminScreen';
+// 강좌 화면들
+import { CoursesScreen } from '../screens/Courses/CoursesScreen';
+import { CourseDetailScreen } from '../screens/Courses/CourseDetailScreen';
+import { LecturePlayerScreen } from '../screens/Courses/LecturePlayerScreen';
 import { COLORS } from '../tokens/colors';
 
 const Stack = createNativeStackNavigator();
@@ -141,6 +146,13 @@ export const RootNavigator = () => {
           }}
         />
         <Stack.Screen 
+          name="AIConsult" 
+          component={AIConsultScreen}
+          options={{ 
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen 
           name="EmergencySupport" 
           component={EmergencySupportScreen}
           options={{ 
@@ -245,6 +257,34 @@ export const RootNavigator = () => {
           component={AdminScreen}
           options={{ 
             headerShown: false,
+          }}
+        />
+        {/* 강좌 화면들 */}
+        <Stack.Screen 
+          name="Courses" 
+          component={CoursesScreen}
+          options={{ 
+            headerShown: true,
+            title: '🎓 강좌 목록',
+            headerBackTitle: '뒤로'
+          }}
+        />
+        <Stack.Screen 
+          name="CourseDetail" 
+          component={CourseDetailScreen}
+          options={{ 
+            headerShown: true,
+            title: '강좌 상세',
+            headerBackTitle: '뒤로'
+          }}
+        />
+        <Stack.Screen 
+          name="LecturePlayer" 
+          component={LecturePlayerScreen}
+          options={{ 
+            headerShown: true,
+            title: '강의 재생',
+            headerBackTitle: '뒤로'
           }}
         />
       </Stack.Navigator>

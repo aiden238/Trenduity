@@ -69,7 +69,7 @@ const AI_MODELS: AIModel[] = [
   },
   {
     id: 'quick',
-    name: '빠른 일반 비서',
+    name: '빠른 비서',
     icon: '⚡',
     description: '간단한 질문에 빠르게 답해드려요',
     systemPrompt: '당신은 빠르고 간결한 답변을 제공하는 AI 도우미입니다. 사용자의 질문에 핵심만 짧고 명확하게 답변하세요. 불필요한 설명은 생략하고, 꼭 필요한 정보만 전달하세요.',
@@ -156,11 +156,11 @@ export const AIChatScreen = () => {
 
     try {
       // 이전 대화 기록 준비 (환영 메시지 제외)
-      const history = messages
+      const conversation_history = messages
         .filter(m => m.id !== 'welcome')
         .map(m => ({ role: m.role, content: m.content }));
 
-      const response = await fetch(`${BFF_URL}/v1/chat/send`, {
+      const response = await fetch(`${BFF_URL}/v1/ai/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -168,19 +168,18 @@ export const AIChatScreen = () => {
         },
         body: JSON.stringify({
           message: text.trim(),
-          history,
+          conversation_history,
           model_id: selectedModel.id,
-          system_prompt: selectedModel.systemPrompt,
         }),
       });
 
       const data = await response.json();
 
-      if (data.ok && data.data?.reply) {
+      if (data.ok && data.data?.response) {
         const assistantMessage: Message = {
           id: (Date.now() + 1).toString(),
           role: 'assistant',
-          content: data.data.reply,
+          content: data.data.response,
           timestamp: new Date(),
         };
         setMessages(prev => [...prev, assistantMessage]);

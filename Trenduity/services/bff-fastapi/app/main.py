@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from app.core.config import settings
 from app.core.deps import init_redis_pool
 from app.middleware.performance import PerformanceMiddleware
-from app.routers import cards, insights, voice, scam, community, family, alerts, dashboard, med, gamification, usage, chat, expenses, todos, subscriptions, admin, courses
+from app.routers import cards, insights, voice, scam, community, family, alerts, dashboard, med, gamification, usage, chat, expenses, todos, subscriptions, admin, courses, ai
 import logging
 
 logger = logging.getLogger(__name__)
@@ -188,6 +188,9 @@ app.include_router(admin.router, prefix=f"/{settings.API_VERSION}/admin", tags=[
 
 # Courses 라우터 추가 (강의 시스템)
 app.include_router(courses.router, prefix=f"/{settings.API_VERSION}/courses", tags=["courses"])
+
+# AI 라우터 추가 (GPT-5/Gemini 연동)
+app.include_router(ai.router, prefix=f"/{settings.API_VERSION}/ai", tags=["ai"])
 
 
 @app.get("/health")

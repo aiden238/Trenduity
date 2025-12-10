@@ -6,7 +6,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 
-const BFF_URL = process.env.EXPO_PUBLIC_BFF_URL || 'https://trenduity-bff.onrender.com';
+const BFF_URL = process.env.EXPO_PUBLIC_BFF_API_URL || 'https://trenduity-bff.onrender.com';
 
 export interface Course {
   id: string;

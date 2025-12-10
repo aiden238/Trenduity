@@ -11,13 +11,17 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useA11y } from '@/contexts/A11yContext';
 import { useCourseDetail } from '@/hooks/useCourses';
 
-export default function CourseDetailScreen() {
+const ACTIVE_COURSE_KEY = '@active_course';
+
+export const CourseDetailScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
   const { courseId } = route.params as { courseId: string };
@@ -64,6 +68,38 @@ export default function CourseDetailScreen() {
   const lastWatched = course.user_progress?.last_watched_lecture || 0;
   const completed = course.user_progress?.completed_lectures || 0;
 
+  const handleStartLearning = async () => {
+    try {
+      // 현재 강좌를 활성 강좌로 저장
+      const activeCourse = {
+        id: course.id,
+        title: course.title,
+        thumbnail: course.thumbnail,
+        description: course.description,
+        total_lectures: course.total_lectures,
+        completed_lectures: completed,
+        last_watched_lecture: lastWatched,
+        started_at: new Date().toISOString(),
+      };
+      
+      await AsyncStorage.setItem(ACTIVE_COURSE_KEY, JSON.stringify(activeCourse));
+      
+      // 다음 강의로 이동 (마지막 본 강의 + 1 또는 1강)
+      const nextLecture = lastWatched + 1;
+      if (nextLecture <= course.total_lectures) {
+        navigation.navigate('LecturePlayer' as never, {
+          courseId: course.id,
+          lectureNumber: nextLecture,
+        } as never);
+      } else {
+        Alert.alert('완료', '모든 강의를 수강하셨습니다! 🎉');
+      }
+    } catch (error) {
+      console.error('Failed to start learning:', error);
+      Alert.alert('오류', '학습을 시작할 수 없어요. 다시 시도해주세요.');
+    }
+  };
+
   return (
     <ScrollView
       style={[styles.container, { backgroundColor: background }]}
@@ -85,8 +121,20 @@ export default function CourseDetailScreen() {
         </Text>
       </View>
 
+      {/* 학습 시작하기 버튼 */}
+      <TouchableOpacity
+        style={[styles.startButton, { backgroundColor: primary, height: buttonHeight, marginTop: spacing.lg, marginBottom: spacing.md }]}
+        onPress={handleStartLearning}
+        accessibilityLabel="학습 시작하기"
+        accessibilityRole="button"
+      >
+        <Text style={[styles.startButtonText, { fontSize: fontSizes.body, color: '#fff' }]}>
+          {completed === course.total_lectures ? '🎉 다시 학습하기' : lastWatched === 0 ? '📖 학습 시작하기' : '📖 이어서 학습하기'}
+        </Text>
+      </TouchableOpacity>
+
       {/* 강의 목록 */}
-      <Text style={[styles.sectionTitle, { fontSize: fontSizes.heading2, color: textPrimary, marginTop: spacing.lg, marginBottom: spacing.md }]}>
+      <Text style={[styles.sectionTitle, { fontSize: fontSizes.heading2, color: textPrimary, marginBottom: spacing.md }]}>
         강의 목록
       </Text>
 
@@ -188,6 +236,19 @@ const styles = StyleSheet.create({
   },
   progress: {
     fontWeight: '600',
+  },
+  startButton: {
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  startButtonText: {
+    fontWeight: 'bold',
   },
   sectionTitle: {
     fontWeight: 'bold',

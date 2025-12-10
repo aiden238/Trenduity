@@ -217,3 +217,38 @@ def get_gamification_service(
     """
     from app.services.gamification import GamificationService
     return GamificationService(supabase, redis)
+
+
+def get_db_connection():
+    """
+    PostgreSQL 직접 연결 (courses API용)
+    
+    Supabase PostgreSQL에 직접 연결하여 JSONB 쿼리 수행
+    주의: 프로덕션에서는 DATABASE_URL 환경변수 필요
+    """
+    import psycopg2
+    from psycopg2.extras import RealDictCursor
+    
+    # DATABASE_URL 우선, 없으면 Supabase URL 조합
+    db_url = settings.DATABASE_URL
+    if not db_url and settings.SUPABASE_URL:
+        # Supabase URL에서 PostgreSQL URL 추출 시도
+        # 예: https://xxx.supabase.co → postgresql://postgres:[PASSWORD]@db.xxx.supabase.co:5432/postgres
+        logger.warning("DATABASE_URL이 설정되지 않았습니다. Supabase 직접 연결을 사용하려면 DATABASE_URL을 설정하세요.")
+        db_url = settings.DATABASE_URL or "postgresql://postgres:postgres@localhost:5432/trenduity"
+    
+    try:
+        conn = psycopg2.connect(db_url, cursor_factory=RealDictCursor)
+        return conn
+    except Exception as e:
+        logger.error(f"PostgreSQL 연결 실패: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "ok": False,
+                "error": {
+                    "code": "DB_CONNECTION_FAILED",
+                    "message": "데이터베이스 연결에 실패했어요. 잠시 후 다시 시도해주세요."
+                }
+            }
+        )

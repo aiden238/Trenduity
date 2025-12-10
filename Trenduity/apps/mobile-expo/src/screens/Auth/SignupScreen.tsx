@@ -35,6 +35,7 @@ export const SignupScreen = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [name, setName] = useState('');
+  const [age, setAge] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSignup = async () => {
@@ -217,7 +218,7 @@ export const SignupScreen = () => {
             </View>
 
             {/* 이름 입력 (선택) */}
-            <View style={{ marginBottom: spacing.lg }}>
+            <View style={{ marginBottom: spacing.md }}>
               <Typography
                 variant="body"
                 mode={mode}
@@ -243,6 +244,37 @@ export const SignupScreen = () => {
                 ]}
                 accessibilityLabel="이름 입력"
                 accessibilityHint="이름을 입력하세요 (선택사항)"
+              />
+            </View>
+
+            {/* 나이 입력 (선택) */}
+            <View style={{ marginBottom: spacing.lg }}>
+              <Typography
+                variant="body"
+                mode={mode}
+                style={[styles.label, { fontSize: fontSizes.body, marginBottom: spacing.xs }]}
+              >
+                나이 (선택)
+              </Typography>
+              <TextInput
+                value={age}
+                onChangeText={setAge}
+                placeholder="나이를 입력하세요"
+                placeholderTextColor={COLORS.neutral.text.tertiary}
+                keyboardType="number-pad"
+                maxLength={3}
+                style={[
+                  styles.input,
+                  {
+                    height: buttonHeight,
+                    paddingHorizontal: spacing.md,
+                    borderRadius: RADIUS.md,
+                    fontSize: fontSizes.body,
+                    color: COLORS.neutral.text.primary,
+                  },
+                ]}
+                accessibilityLabel="나이 입력"
+                accessibilityHint="나이를 입력하세요 (선택사항)"
               />
             </View>
 
