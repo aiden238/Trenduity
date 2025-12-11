@@ -21,6 +21,8 @@ import { useA11y } from '../../contexts/A11yContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { COLORS } from '../../tokens/colors';
+import { useMySubscription, useCheckUsage, useRecordUsage } from '../../hooks/useSubscription';
+import { Alert } from 'react-native';
 
 interface Message {
   id: string;
@@ -58,6 +60,11 @@ export const AIConsultScreen = () => {
   const { activeTheme, colors } = useTheme();
   const { accessToken } = useAuth();
   
+  // 구독 플랜 관련
+  const { data: subscription } = useMySubscription();
+  const checkUsageMutation = useCheckUsage();
+  const recordUsageMutation = useRecordUsage();
+  
   // 테마 색상
   const bgColor = activeTheme === 'dark' ? colors.dark.background.primary : '#F9FAFB';
   const cardBg = activeTheme === 'dark' ? colors.dark.background.secondary : '#FFFFFF';
@@ -78,6 +85,28 @@ export const AIConsultScreen = () => {
 
   const sendMessage = async (text: string) => {
     if (!text.trim() || isLoading) return;
+
+    // 1. 사용량 체크 (만능 비서 사용)
+    try {
+      const usageCheck = await checkUsageMutation.mutateAsync('allround');
+      if (!usageCheck.can_use) {
+        Alert.alert(
+          '사용 횟수 초과 😢',
+          `오늘 AI 상담 사용 횟수를 모두 사용했어요.\n\n남은 횟수: ${usageCheck.remaining}/${usageCheck.limit}\n\n플랜을 업그레이드하시겠어요?`,
+          [
+            { text: '나중에', style: 'cancel' },
+            { 
+              text: '플랜 보기', 
+              onPress: () => navigation.navigate('Subscription') 
+            },
+          ]
+        );
+        return;
+      }
+    } catch (error: any) {
+      Alert.alert('오류', error.message || '사용량 확인에 실패했어요');
+      return;
+    }
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -108,6 +137,9 @@ export const AIConsultScreen = () => {
       const data = await response.json();
 
       if (data.ok && data.data?.response) {
+        // 2. 사용량 기록 (성공 시)
+        await recordUsageMutation.mutateAsync('allround');
+        
         const assistantMessage: Message = {
           id: (Date.now() + 1).toString(),
           role: 'assistant',
@@ -212,10 +244,18 @@ export const AIConsultScreen = () => {
             AI 맞춤 상담
           </Text>
           <Text style={[styles.headerSubtitle, { fontSize: fontSizes.small, color: textSecondary }]}>
-            무엇이든 편하게 물어보세요
+            {subscription?.usage?.allround
+              ? `오늘 ${subscription.usage.allround.remaining}/${subscription.usage.allround.limit}회 남음`
+              : '무엇이든 편하게 물어보세요'}
           </Text>
         </View>
-        <View style={{ width: 44 }} />
+        <TouchableOpacity
+          onPress={() => navigation.navigate('Subscription')}
+          style={{ width: 44, alignItems: 'center' }}
+          accessibilityLabel="구독 관리"
+        >
+          <Text style={{ fontSize: 24 }}>👑</Text>
+        </TouchableOpacity>
       </View>
 
       {/* 메시지 목록 */}

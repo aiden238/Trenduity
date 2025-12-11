@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, FlatList, ScrollView, TouchableOpacity, Alert, ActivityIndicator, RefreshControl } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useA11y } from '../../contexts/A11yContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { COLORS, SPACING, SHADOWS, RADIUS } from '../../tokens/colors';
+import { useQnaPosts } from '../../hooks/useQna';
 
 const TOPICS = [
   { key: undefined, label: '전체', icon: '📚' },
@@ -72,11 +73,13 @@ export const QnaListScreen = () => {
   const [selectedTopic, setSelectedTopic] = useState<string | undefined>();
   const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
   const [localVoteCounts, setLocalVoteCounts] = useState<Record<string, number>>({});
-  const [userPosts, setUserPosts] = useState<any[]>([]);
   const { spacing, fontSizes } = useA11y();
   const { activeTheme, colors } = useTheme();
   const { user } = useAuth();
   const navigation = useNavigation<any>();
+  
+  // API에서 게시물 불러오기
+  const { data: qnaData, isLoading, error, refetch } = useQnaPosts(selectedTopic);
   
   // 다크 모드 색상
   const bgColor = activeTheme === 'dark' ? colors.dark.background.primary : '#F9FAFB';
@@ -84,17 +87,16 @@ export const QnaListScreen = () => {
   const textPrimary = activeTheme === 'dark' ? colors.dark.text.primary : '#1F2937';
   const textSecondary = activeTheme === 'dark' ? colors.dark.text.secondary : '#6B7280';
 
-  // 좋아요 상태 및 사용자 게시물 로드
+  // 좋아요 상태 로드
   useEffect(() => {
     loadLikes();
-    loadUserPosts();
   }, []);
 
   // 화면 포커스될 때마다 게시물 새로고침
   useFocusEffect(
     React.useCallback(() => {
-      loadUserPosts();
-    }, [])
+      refetch();
+    }, [refetch])
   );
 
   const loadLikes = async () => {
@@ -110,42 +112,7 @@ export const QnaListScreen = () => {
     }
   };
 
-  const loadUserPosts = async () => {
-    try {
-      const stored = await AsyncStorage.getItem(POSTS_STORAGE_KEY);
-      if (stored) {
-        const posts = JSON.parse(stored);
-        setUserPosts(posts);
-      }
-    } catch (e) {
-      console.log('게시물 로드 실패:', e);
-    }
-  };
 
-  const handleDeletePost = async (postId: string) => {
-    Alert.alert(
-      '글 삭제',
-      '정말로 이 글을 삭제하시겠어요?',
-      [
-        { text: '취소', style: 'cancel' },
-        {
-          text: '삭제',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const filtered = userPosts.filter(p => p.id !== postId);
-              await AsyncStorage.setItem(POSTS_STORAGE_KEY, JSON.stringify(filtered));
-              setUserPosts(filtered);
-              Alert.alert('완료', '글이 삭제되었습니다.');
-            } catch (e) {
-              console.error('삭제 실패:', e);
-              Alert.alert('오류', '글 삭제에 실패했습니다.');
-            }
-          }
-        }
-      ]
-    );
-  };
 
   const saveLikes = async (newLikedPosts: Set<string>, newVoteCounts: Record<string, number>) => {
     try {
@@ -179,17 +146,12 @@ export const QnaListScreen = () => {
     await saveLikes(newLikedPosts, newVoteCounts);
   };
 
-  const getVoteCount = (post: typeof DUMMY_POSTS[0]) => {
-    return post.vote_count + (localVoteCounts[post.id] || 0);
+  const getVoteCount = (post: any) => {
+    return post.reaction_count + (localVoteCounts[post.id] || 0);
   };
 
-  // 사용자 게시물 + 더미 게시물 합치기
-  const allPosts = [...userPosts, ...DUMMY_POSTS];
-
-  // 필터된 게시물
-  const filteredPosts = selectedTopic 
-    ? allPosts.filter(post => post.topic === selectedTopic)
-    : allPosts;
+  // API에서 불러온 게시물 사용
+  const allPosts = qnaData?.posts || [];
 
   return (
     <View style={[styles.container, { backgroundColor: bgColor }]}>
@@ -244,10 +206,40 @@ export const QnaListScreen = () => {
         </ScrollView>
       </View>
 
+      {/* 로딩 상태 */}
+      {isLoading && !qnaData && (
+        <View style={[styles.loadingContainer, { flex: 1, justifyContent: 'center', alignItems: 'center' }]}>
+          <ActivityIndicator size="large" color={COLORS.primary.main} />
+          <Text style={[styles.loadingText, { fontSize: fontSizes.body, color: textSecondary, marginTop: spacing.md }]}>
+            질문을 불러오는 중이에요...
+          </Text>
+        </View>
+      )}
+
+      {/* 에러 상태 */}
+      {error && (
+        <View style={[styles.errorContainer, { flex: 1, justifyContent: 'center', alignItems: 'center', padding: spacing.xl }]}>
+          <Text style={{ fontSize: 48, marginBottom: spacing.md }}>😢</Text>
+          <Text style={[styles.errorText, { fontSize: fontSizes.body, color: textSecondary, textAlign: 'center' }]}>
+            질문을 불러올 수 없어요.{'\n'}잠시 후 다시 시도해 주세요.
+          </Text>
+          <TouchableOpacity
+            style={[styles.retryButton, { backgroundColor: COLORS.primary.main, marginTop: spacing.lg, paddingVertical: spacing.md, paddingHorizontal: spacing.xl, borderRadius: 12 }]}
+            onPress={() => refetch()}
+          >
+            <Text style={{ color: '#FFFFFF', fontSize: fontSizes.body, fontWeight: '600' }}>다시 시도</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       {/* 게시물 목록 */}
-      <FlatList
-        data={filteredPosts}
-        keyExtractor={(item) => item.id}
+      {!isLoading && !error && (
+        <FlatList
+          data={allPosts}
+          keyExtractor={(item) => item.id}
+          refreshControl={
+            <RefreshControl refreshing={isLoading} onRefresh={refetch} />
+          }
         contentContainerStyle={{ padding: spacing.md }}
         renderItem={({ item }) => {
           const isMyPost = item.author_id === user?.id;
@@ -328,14 +320,15 @@ export const QnaListScreen = () => {
             </TouchableOpacity>
           );
         }}
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Text style={[styles.emptyText, { fontSize: fontSizes.body, color: textSecondary }]}>
-              아직 질문이 없어요. 첫 번째 질문을 올려보세요! 🙋
-            </Text>
-          </View>
-        }
-      />
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Text style={[styles.emptyText, { fontSize: fontSizes.body, color: textSecondary }]}>
+                아직 질문이 없어요. 첫 번째 질문을 올려보세요! 🙋
+              </Text>
+            </View>
+          }
+        />
+      )}
 
       {/* FAB - 질문하기 버튼 */}
       <TouchableOpacity
@@ -425,6 +418,26 @@ const styles = StyleSheet.create({
   },
   likeTextActive: {
     color: '#EF4444',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 12,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 32,
+  },
+  errorText: {
+    textAlign: 'center',
+  },
+  retryButton: {
+    marginTop: 20,
   },
   emptyContainer: {
     flex: 1,
