@@ -60,25 +60,25 @@ AI_MODEL_CONFIG = {
     "allround": {
         "name": "만능 비서",
         "provider": "openai",
-        "model": "gpt-4o",  # GPT-5 Nano 대체 (실제로는 GPT-4o 사용)
+        "model": "gpt-5-nano",  # GPT-5 Nano (최신 OpenAI 모델)
         "system_prompt": "당신은 시니어를 위한 만능 AI 도우미입니다. 디지털 기기 사용법, 앱 활용, 일상 생활의 모든 궁금증에 친절하고 자세하게 답변해주세요. 어르신이 이해하기 쉽게 단계별로 설명하고, 이모지를 적절히 사용해 친근하게 소통하세요.",
     },
     "quick": {
         "name": "빠른 비서",
         "provider": "google",
-        "model": "gemini-1.5-flash",  # Gemini 2.5 Flash Lite 대체
+        "model": "gemini-2.0-flash-lite",  # Gemini 2.0 Flash Lite (최신 빠른 모델)
         "system_prompt": "당신은 빠르고 간결한 답변을 제공하는 AI 도우미입니다. 사용자의 질문에 핵심만 짧고 명확하게 답변하세요. 불필요한 설명은 생략하고, 꼭 필요한 정보만 전달하세요.",
     },
     "writer": {
         "name": "글쓰기 비서",
         "provider": "google",
-        "model": "gemini-1.5-pro",  # Gemini 2.5 Flash 대체
+        "model": "gemini-2.5-flash",  # Gemini 2.5 Flash (최신 균형 모델)
         "system_prompt": "당신은 시니어를 위한 친절한 글쓰기 도우미입니다. 사용자가 편지, 문자, 이메일, 축하 메시지 등을 작성할 때 쉽고 정중한 표현으로 도와주세요. 어려운 표현은 피하고, 따뜻하고 정감 있는 한국어를 사용하세요.",
     },
     "expert": {
         "name": "척척박사 비서",
         "provider": "openai",
-        "model": "gpt-4o-mini",  # GPT-5 Mini 대체
+        "model": "gpt-5-mini",  # GPT-5 Mini (최신 OpenAI 경량 모델)
         "system_prompt": "당신은 시니어를 위한 박식한 정보 도우미입니다. 건강, 생활 상식, 역사, 문화 등 다양한 분야의 질문에 쉽고 정확하게 답변해주세요. 전문 용어는 쉽게 풀어서 설명하고, 필요하면 예시를 들어주세요.",
     },
 }
@@ -86,7 +86,7 @@ AI_MODEL_CONFIG = {
 
 async def call_openai_api(
     messages: List[Dict[str, str]],
-    model: str = "gpt-4o",
+    model: str = "gpt-5-nano",
     max_tokens: int = 500,
     temperature: float = 0.7,
 ) -> Dict:
@@ -154,7 +154,7 @@ async def call_openai_api(
 
 async def call_google_gemini_api(
     messages: List[Dict[str, str]],
-    model: str = "gemini-1.5-flash",
+    model: str = "gemini-2.0-flash-lite",
     max_tokens: int = 500,
     temperature: float = 0.7,
 ) -> Dict:
@@ -277,7 +277,7 @@ async def ai_consult(
     # OpenAI API 호출 (만능 비서 모델)
     result = await call_openai_api(
         messages=messages,
-        model="gpt-4o",
+        model="gpt-5-nano",
         max_tokens=700,
         temperature=0.8,
     )
