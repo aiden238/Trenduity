@@ -109,12 +109,17 @@ async def call_openai_api(
         "Content-Type": "application/json",
     }
 
+    # GPT-5 모델은 max_completion_tokens 사용, 이전 모델은 max_tokens 사용
     payload = {
         "model": model,
         "messages": messages,
-        "max_tokens": max_tokens,
         "temperature": temperature,
     }
+    
+    if model.startswith("gpt-5"):
+        payload["max_completion_tokens"] = max_tokens
+    else:
+        payload["max_tokens"] = max_tokens
 
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
