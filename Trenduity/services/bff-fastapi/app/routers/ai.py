@@ -11,7 +11,7 @@ import httpx
 import os
 from datetime import datetime
 
-from app.core.deps import get_current_user
+from app.core.deps import get_current_user_optional
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -246,15 +246,16 @@ async def call_google_gemini_api(
 @router.post("/consult")
 async def ai_consult(
     request: AIConsultRequest,
-    current_user: dict = Depends(get_current_user),
+    current_user: Optional[str] = Depends(get_current_user_optional),
 ):
     """
     AI 맞춤 상담
     
     시니어의 고민이나 질문에 대해 친절하게 상담해주는 엔드포인트.
     기본적으로 만능 비서 모델을 사용합니다.
+    인증 없이도 사용 가능합니다.
     """
-    user_id = current_user["id"]
+    user_id = current_user if current_user else "anonymous"
     
     logger.info(f"AI Consult request from user {user_id}")
     
@@ -294,7 +295,7 @@ async def ai_consult(
 @router.post("/chat")
 async def ai_chat(
     request: AIChatRequest,
-    current_user: dict = Depends(get_current_user),
+    current_user: Optional[str] = Depends(get_current_user_optional),
 ):
     """
     AI 채팅 (4가지 비서 모델)
@@ -304,8 +305,9 @@ async def ai_chat(
     - quick: Gemini 1.5 Flash (빠른 비서)
     - writer: Gemini 1.5 Pro (글쓰기 비서)
     - expert: GPT-4o Mini (척척박사 비서)
+    인증 없이도 사용 가능합니다.
     """
-    user_id = current_user["id"]
+    user_id = current_user if current_user else "anonymous"
     model_id = request.model_id
     
     if model_id not in AI_MODEL_CONFIG:

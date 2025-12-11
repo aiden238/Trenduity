@@ -12,7 +12,12 @@
       "distribution": "internal"
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://onnthandrqutdmvwnilf.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ubnRoYW5kcnF1dGRtdnduaWxmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM0MDE4MDEsImV4cCI6MjA3ODk3NzgwMX0.Wwr760rppwz5ar8ts6fQXWdaY0DnohH4VwCc6Cl0fOo",
+        "EXPO_PUBLIC_BFF_API_URL": "https://trenduity-bff.onrender.com"
+      }
     }
   },
   "submit": {
