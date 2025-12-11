@@ -443,14 +443,6 @@ export const HomeAScreen = () => {
             <Text style={styles.quickMenuIcon}>💊</Text>
             <Text style={[styles.quickMenuText, { fontSize: fontSizes.body, color: textPrimary }]}>복약 체크</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.quickMenuItem, { backgroundColor: cardBg }]}
-            onPress={() => navigation.navigate('AIConsult')}
-            accessibilityLabel="AI에게 맞춤 상담 받기"
-          >
-            <Text style={styles.quickMenuIcon}>🤖</Text>
-            <Text style={[styles.quickMenuText, { fontSize: fontSizes.body, color: textPrimary }]}>AI 맞춤 상담</Text>
-          </TouchableOpacity>
         </View>
 
         {/* 최근 활동 */}

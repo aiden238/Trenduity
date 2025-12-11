@@ -489,6 +489,21 @@ export const ExpenseTrackerScreen = () => {
             </Text>
           </TouchableOpacity>
         )}
+
+        {/* AI 맞춤 상담 버튼 */}
+        <TouchableOpacity
+          style={[styles.aiHelpButton, { backgroundColor: COLORS.accent.purple, padding: spacing.lg, borderRadius: 16, marginTop: spacing.md, marginBottom: spacing.xl }]}
+          onPress={() => navigation.navigate('AIConsult')}
+          accessibilityLabel="AI 맞춤 상담받기"
+        >
+          <Text style={{ fontSize: 32, marginBottom: spacing.sm }}>🤖</Text>
+          <Text style={{ fontSize: fontSizes.heading2, color: '#FFFFFF', fontWeight: '700' }}>
+            AI 맞춤 상담
+          </Text>
+          <Text style={{ fontSize: fontSizes.body, color: 'rgba(255,255,255,0.9)', marginTop: 4 }}>
+            궁금한 것이 있으신가요? AI가 친절하게 답변해드려요!
+          </Text>
+        </TouchableOpacity>
       </ScrollView>
 
       {/* 기타 항목 추가 모달 */}

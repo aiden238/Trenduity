@@ -418,6 +418,22 @@ export const TodoMemoScreen = () => {
             💡 팁: 할일을 탭하면 완료/미완료를 바꿀 수 있어요. 길게 누르면 삭제할 수 있어요.
           </Text>
         </View>
+
+        {/* AI 맞춤 상담 */}
+        <TouchableOpacity
+          style={[styles.aiHelpButton, { backgroundColor: COLORS.accent.purple, padding: spacing.lg, borderRadius: 16, marginTop: spacing.md, marginBottom: spacing.xl }]}
+          onPress={() => navigation.navigate('AIConsult')}
+          accessibilityLabel="AI 맞춤 상담받기"
+          accessibilityHint="AI와 대화하며 궁금한 점을 물어볼 수 있어요"
+        >
+          <Text style={{ fontSize: 32, marginBottom: spacing.sm }}>🤖</Text>
+          <Text style={{ fontSize: fontSizes.heading2, color: '#FFFFFF', fontWeight: '700', marginBottom: 4 }}>
+            AI 맞춤 상담
+          </Text>
+          <Text style={{ fontSize: fontSizes.body, color: 'rgba(255,255,255,0.9)', marginTop: 4 }}>
+            궁금한 것이 있으신가요? AI가 친절하게 답변해드려요!
+          </Text>
+        </TouchableOpacity>
       </ScrollView>
 
       {/* 추가 버튼 (FAB) */}
