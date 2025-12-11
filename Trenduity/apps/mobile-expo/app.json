@@ -6,7 +6,6 @@
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "sdkVersion": "54.0.0",
-    "newArchEnabled": false,
     "extra": {
       "BFF_API_URL": "http://localhost:8000",
       "eas": {
