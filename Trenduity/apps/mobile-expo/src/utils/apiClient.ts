@@ -8,10 +8,11 @@ import axios, { AxiosInstance } from 'axios';
  */
 
 const BFF_API_URL = process.env.EXPO_PUBLIC_BFF_API_URL || 'http://localhost:8000';
+console.log('🔧 [apiClient] BFF_API_URL:', BFF_API_URL);
 
 export const apiClient: AxiosInstance = axios.create({
   baseURL: BFF_API_URL,
-  timeout: 10000,
+  timeout: 60000, // 60초로 증가 (Render Cold Start 대응)
   headers: {
     'Content-Type': 'application/json',
   },

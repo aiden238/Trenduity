@@ -25,7 +25,7 @@ export const Button: React.FC<ButtonProps> = ({
   children,
   disabled = false,
   style,
-  accessibilityLabel,
+  accessibilityLabel,`ㅋ`
   accessibilityHint,
 }) => {
   const tokens = getA11yTokens(mode);

@@ -45,6 +45,7 @@ const getBffUrl = (): string => {
 };
 
 const BFF_URL = getBffUrl();
+console.log('🔧 [AuthContext] BFF_URL:', BFF_URL);
 
 // fetch with timeout helper
 const fetchWithTimeout = async (url: string, options: RequestInit, timeoutMs: number = 30000): Promise<Response> => {
